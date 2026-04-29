@@ -1,2 +1,158 @@
-hi JuhnXu
-<img src="aaa.png"></img>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JX Home</title>
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    height: 100vh;
+    font-family: "Segoe UI", sans-serif;
+    color: white;
+    overflow: hidden;
+    background: linear-gradient(-45deg, #0f2027, #2c5364, #1c1c3c, #3a1c71);
+    background-size: 400% 400%;
+    animation: gradientBG 12s ease infinite;
+}
+
+/* 动态背景 */
+@keyframes gradientBG {
+    0% {background-position: 0% 50%;}
+    50% {background-position: 100% 50%;}
+    100% {background-position: 0% 50%;}
+}
+
+/* 居中容器 */
+.container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+/* 玻璃卡片 */
+.card {
+    backdrop-filter: blur(15px);
+    background: rgba(255,255,255,0.08);
+    padding: 50px 70px;
+    border-radius: 20px;
+    text-align: center;
+    box-shadow: 0 0 40px rgba(0,0,0,0.4);
+}
+
+/* 标题 */
+h1 {
+    font-size: 3em;
+    margin-bottom: 10px;
+    letter-spacing: 2px;
+}
+
+/* 打字效果 */
+.typing {
+    font-size: 1.2em;
+    opacity: 0.85;
+    height: 1.5em;
+    margin-bottom: 20px;
+}
+
+/* 按钮 */
+.btn {
+    display: inline-block;
+    margin-top: 20px;
+    padding: 14px 28px;
+    font-size: 16px;
+    color: white;
+    text-decoration: none;
+    border-radius: 30px;
+    background: linear-gradient(45deg, #ff6b6b, #f8e71c);
+    box-shadow: 0 0 15px rgba(255,107,107,0.6);
+    transition: 0.3s;
+}
+
+.btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 25px rgba(255,107,107,1);
+}
+
+/* 小粒子点 */
+.particle {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    background: white;
+    opacity: 0.5;
+    border-radius: 50%;
+    animation: float 10s linear infinite;
+}
+
+@keyframes float {
+    from {
+        transform: translateY(100vh);
+    }
+    to {
+        transform: translateY(-10vh);
+    }
+}
+
+/* footer */
+footer {
+    position: absolute;
+    bottom: 20px;
+    width: 100%;
+    text-align: center;
+    font-size: 12px;
+    opacity: 0.6;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <div class="card">
+        <h1>JX SPACE</h1>
+        <div class="typing" id="typing"></div>
+
+        <a class="btn" href="https://juhnxu.github.io/jx_cut/" target="_blank">
+            🚀 进入项目
+        </a>
+    </div>
+</div>
+
+<footer>
+    © 2026 Juhnxu
+</footer>
+
+<script>
+// 打字机效果
+const text = "探索 · 创造 · 构建未来";
+let i = 0;
+function typing() {
+    if (i < text.length) {
+        document.getElementById("typing").innerHTML += text.charAt(i);
+        i++;
+        setTimeout(typing, 80);
+    }
+}
+typing();
+
+// 粒子生成
+for (let i = 0; i < 40; i++) {
+    let p = document.createElement("div");
+    p.className = "particle";
+    p.style.left = Math.random() * 100 + "vw";
+    p.style.animationDuration = (5 + Math.random() * 10) + "s";
+    p.style.opacity = Math.random();
+    document.body.appendChild(p);
+}
+</script>
+
+</body>
+</html>
