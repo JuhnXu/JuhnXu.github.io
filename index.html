@@ -6,6 +6,14 @@
 <title>JX Home</title>
 
 <style>
+:root {
+    --panel: rgba(255, 255, 255, 0.1);
+    --panel-strong: rgba(255, 255, 255, 0.18);
+    --text: #ffffff;
+    --muted: rgba(255, 255, 255, 0.72);
+    --line: rgba(255, 255, 255, 0.34);
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -13,139 +21,387 @@
 }
 
 body {
-    height: 100vh;
-    font-family: "Segoe UI", sans-serif;
-    color: white;
+    min-height: 100vh;
+    font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+    color: var(--text);
     overflow: hidden;
-    background: linear-gradient(-45deg, #0f2027, #2c5364, #1c1c3c, #3a1c71);
-    background-size: 400% 400%;
+    background:
+        radial-gradient(circle at 18% 20%, rgba(255, 107, 107, 0.32), transparent 28%),
+        radial-gradient(circle at 78% 18%, rgba(69, 220, 191, 0.28), transparent 30%),
+        linear-gradient(-45deg, #13212a, #234b52, #25213d, #49284d);
+    background-size: 150% 150%, 130% 130%, 400% 400%;
     animation: gradientBG 12s ease infinite;
 }
 
-/* 动态背景 */
 @keyframes gradientBG {
-    0% {background-position: 0% 50%;}
-    50% {background-position: 100% 50%;}
-    100% {background-position: 0% 50%;}
+    0% { background-position: 0% 50%, 100% 0%, 0% 50%; }
+    50% { background-position: 100% 50%, 0% 100%, 100% 50%; }
+    100% { background-position: 0% 50%, 100% 0%, 0% 50%; }
 }
 
-/* 居中容器 */
-.container {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+.stage {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 24px;
 }
 
-/* 玻璃卡片 */
 .card {
-    backdrop-filter: blur(15px);
-    background: rgba(255,255,255,0.08);
-    padding: 50px 70px;
-    border-radius: 20px;
+    position: relative;
+    z-index: 3;
+    width: min(420px, calc(100vw - 48px));
+    padding: 46px 42px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 18px;
     text-align: center;
-    box-shadow: 0 0 40px rgba(0,0,0,0.4);
+    background: var(--panel);
+    backdrop-filter: blur(15px);
+    box-shadow: 0 28px 80px rgba(0, 0, 0, 0.36);
+    transition: transform 0.45s ease, background 0.45s ease;
 }
 
-/* 标题 */
+.map-open .card {
+    transform: scale(0.96);
+    background: rgba(255, 255, 255, 0.08);
+}
+
 h1 {
-    font-size: 3em;
+    font-size: clamp(2.3rem, 8vw, 3rem);
     margin-bottom: 10px;
     letter-spacing: 2px;
 }
 
-/* 打字效果 */
 .typing {
-    font-size: 1.2em;
-    opacity: 0.85;
-    height: 1.5em;
+    min-height: 1.5em;
     margin-bottom: 20px;
+    color: var(--muted);
+    font-size: 1.05rem;
 }
 
-/* 按钮 */
 .btn {
-    display: inline-block;
-    margin-top: 20px;
-    padding: 14px 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 128px;
+    min-height: 48px;
+    margin-top: 14px;
+    padding: 12px 24px;
+    border: 0;
+    border-radius: 999px;
+    color: white;
     font-size: 16px;
+    cursor: pointer;
+    background: linear-gradient(45deg, #ff6b6b, #ffd166);
+    box-shadow: 0 0 18px rgba(255, 107, 107, 0.55);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.btn:hover,
+.btn:focus-visible {
+    transform: translateY(-2px) scale(1.04);
+    box-shadow: 0 0 28px rgba(255, 107, 107, 0.9);
+    outline: none;
+}
+
+.mind-map {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.map-line {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: var(--distance);
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--line), transparent);
+    transform: rotate(var(--angle));
+    transform-origin: left center;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+}
+
+.project-node {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: min(210px, 43vw);
+    min-height: 78px;
+    padding: 14px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 8px;
     color: white;
     text-decoration: none;
-    border-radius: 30px;
-    background: linear-gradient(45deg, #ff6b6b, #f8e71c);
-    box-shadow: 0 0 15px rgba(255,107,107,0.6);
-    transition: 0.3s;
+    background: rgba(255, 255, 255, 0.13);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+    backdrop-filter: blur(12px);
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, -50%) scale(0.72);
+    transition:
+        transform 0.52s cubic-bezier(.18, .9, .2, 1.2),
+        opacity 0.35s ease,
+        background 0.25s ease,
+        border-color 0.25s ease;
 }
 
-.btn:hover {
-    transform: scale(1.1);
-    box-shadow: 0 0 25px rgba(255,107,107,1);
+.project-node::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 4px;
+    border-radius: 8px 0 0 8px;
+    background: var(--accent);
 }
 
-/* 小粒子点 */
+.project-node strong,
+.project-node span {
+    display: block;
+    padding-left: 6px;
+}
+
+.project-node strong {
+    margin-bottom: 6px;
+    font-size: 1rem;
+}
+
+.project-node span {
+    color: var(--muted);
+    font-size: 0.82rem;
+    line-height: 1.45;
+}
+
+.project-node:hover,
+.project-node:focus-visible {
+    background: var(--panel-strong);
+    border-color: rgba(255, 255, 255, 0.42);
+    outline: none;
+}
+
+.map-open .mind-map {
+    pointer-events: auto;
+}
+
+.map-open .map-line {
+    opacity: 1;
+}
+
+.map-open .project-node {
+    opacity: 1;
+    pointer-events: auto;
+    transform:
+        translate(calc(-50% + var(--x)), calc(-50% + var(--y)))
+        rotate(var(--tilt))
+        scale(1);
+    animation: breathe 4.5s ease-in-out infinite;
+    animation-delay: var(--delay);
+}
+
+@keyframes breathe {
+    0%, 100% {
+        margin-top: 0;
+    }
+    50% {
+        margin-top: -8px;
+    }
+}
+
 .particle {
     position: absolute;
     width: 3px;
     height: 3px;
+    border-radius: 50%;
     background: white;
     opacity: 0.5;
-    border-radius: 50%;
     animation: float 10s linear infinite;
 }
 
 @keyframes float {
-    from {
-        transform: translateY(100vh);
-    }
-    to {
-        transform: translateY(-10vh);
-    }
+    from { transform: translateY(100vh); }
+    to { transform: translateY(-10vh); }
 }
 
-/* footer */
 footer {
     position: absolute;
     bottom: 20px;
+    z-index: 4;
     width: 100%;
     text-align: center;
+    color: var(--muted);
     font-size: 12px;
-    opacity: 0.6;
+}
+
+@media (max-width: 720px) {
+    body {
+        overflow: auto;
+    }
+
+    .stage {
+        min-height: 100vh;
+        height: auto;
+        padding: 36px 18px 78px;
+        align-content: start;
+        gap: 24px;
+    }
+
+    .card {
+        width: min(100%, 390px);
+        padding: 38px 28px;
+    }
+
+    .mind-map {
+        position: relative;
+        display: none;
+        grid-template-columns: 1fr;
+        gap: 12px;
+        width: min(100%, 390px);
+        pointer-events: auto;
+    }
+
+    .map-open .mind-map {
+        display: grid;
+    }
+
+    .map-line {
+        display: none;
+    }
+
+    .project-node,
+    .map-open .project-node {
+        position: relative;
+        left: auto;
+        top: auto;
+        width: 100%;
+        opacity: 0;
+        transform: translateY(12px) scale(0.98);
+        pointer-events: none;
+        animation: none;
+    }
+
+    .map-open .project-node {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateY(0) scale(1);
+    }
 }
 </style>
 </head>
 
 <body>
-
-<div class="container">
-    <div class="card">
+<main class="stage" id="stage">
+    <section class="card">
         <h1>JX SPACE</h1>
         <div class="typing" id="typing"></div>
+        <button class="btn" id="enterBtn" type="button" aria-expanded="false" aria-controls="mindMap">
+            🚀 进入
+        </button>
+    </section>
 
-        <a class="btn" href="https://juhnxu.github.io/jx_cut/" target="_blank">
-            🚀 进入项目
-        </a>
-    </div>
-</div>
+    <nav class="mind-map" id="mindMap" aria-label="项目导航"></nav>
+</main>
 
 <footer>
     © 2026 Juhnxu
 </footer>
 
 <script>
-// 打字机效果
 const text = "探索 · 创造 · 构建未来";
-let i = 0;
+const typingEl = document.getElementById("typing");
+const stage = document.getElementById("stage");
+const enterBtn = document.getElementById("enterBtn");
+const mindMap = document.getElementById("mindMap");
+
+// 后续新增项目时，只需要在这里追加一项。
+const projectLinks = [
+    {
+        title: "JX Cut",
+        desc: "视频剪辑与创作工具",
+        url: "https://juhnxu.github.io/jx_cut/",
+        accent: "#ff6b6b"
+    },
+    {
+        title: "GitHub",
+        desc: "主页",
+        url: "https://github.com/JuhnXu",
+        accent: "#45dcbf"
+    },
+    {
+        title: "Project Lab",
+        desc: "PDF合成",
+        url: "https://juhnxu.github.io/jx_cut/pdf.html",
+        accent: "#ffd166"
+    },
+    {
+        title: "JX Notes",
+        desc: "单页连续阅读图片",
+        url: "https://juhnxu.github.io/jx_cut/gallery.html",
+        accent: "#9b8cff"
+    }
+];
+
+let typingIndex = 0;
 function typing() {
-    if (i < text.length) {
-        document.getElementById("typing").innerHTML += text.charAt(i);
-        i++;
+    if (typingIndex < text.length) {
+        typingEl.textContent += text.charAt(typingIndex);
+        typingIndex++;
         setTimeout(typing, 80);
     }
 }
-typing();
 
-// 粒子生成
+function buildMindMap() {
+    const isMobile = window.matchMedia("(max-width: 720px)").matches;
+    const radiusX = Math.min(window.innerWidth * 0.34, 330);
+    const radiusY = Math.min(window.innerHeight * 0.28, 230);
+
+    mindMap.innerHTML = "";
+
+    projectLinks.forEach((project, index) => {
+        const angle = -90 + (360 / projectLinks.length) * index;
+        const radian = angle * Math.PI / 180;
+        const x = Math.cos(radian) * radiusX;
+        const y = Math.sin(radian) * radiusY;
+        const distance = Math.hypot(x, y);
+        const tilt = (index % 2 === 0 ? -2 : 2) + "deg";
+
+        if (!isMobile) {
+            const line = document.createElement("span");
+            line.className = "map-line";
+            line.style.setProperty("--angle", `${Math.atan2(y, x)}rad`);
+            line.style.setProperty("--distance", `${distance}px`);
+            mindMap.appendChild(line);
+        }
+
+        const node = document.createElement("a");
+        node.className = "project-node";
+        node.href = project.url;
+        node.target = "_blank";
+        node.rel = "noopener noreferrer";
+        node.style.setProperty("--x", `${x}px`);
+        node.style.setProperty("--y", `${y}px`);
+        node.style.setProperty("--tilt", tilt);
+        node.style.setProperty("--delay", `${index * 0.14}s`);
+        node.style.setProperty("--accent", project.accent);
+        node.innerHTML = `<strong>${project.title}</strong><span>${project.desc}</span>`;
+        mindMap.appendChild(node);
+    });
+}
+
+enterBtn.addEventListener("click", () => {
+    const isOpen = stage.classList.toggle("map-open");
+    enterBtn.setAttribute("aria-expanded", String(isOpen));
+});
+
+window.addEventListener("resize", buildMindMap);
+
+typing();
+buildMindMap();
+
 for (let i = 0; i < 40; i++) {
-    let p = document.createElement("div");
+    const p = document.createElement("div");
     p.className = "particle";
     p.style.left = Math.random() * 100 + "vw";
     p.style.animationDuration = (5 + Math.random() * 10) + "s";
@@ -153,6 +409,5 @@ for (let i = 0; i < 40; i++) {
     document.body.appendChild(p);
 }
 </script>
-
 </body>
 </html>
