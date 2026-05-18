@@ -1,0 +1,1823 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>模拟战斗</title>
+  <style>
+    :root{
+      --bg:#eef1f4;
+      --panel:#ffffff;
+      --panel-2:#f7f9fb;
+      --ink:#15202b;
+      --muted:#66707a;
+      --line:#d8e0e8;
+      --teal:#0f766e;
+      --teal-soft:#d9f0ed;
+      --amber:#b45309;
+      --amber-soft:#f7e7d2;
+      --red:#c2410c;
+      --red-soft:#fde7db;
+      --green:#15803d;
+      --green-soft:#ddf5e4;
+      --blue:#1d4ed8;
+      --blue-soft:#dbe6ff;
+      --shadow:0 10px 30px rgba(21,32,43,.08);
+      --radius:10px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--ink);
+      font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    }
+    button,input,select{font:inherit}
+    .app{
+      min-height:100%;
+      padding:16px;
+      display:grid;
+      grid-template-rows:auto 1fr;
+      gap:14px;
+    }
+    .topbar{
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:14px 16px;
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:14px;
+    }
+    .brand h1{
+      margin:0;
+      font-size:24px;
+      line-height:1.1;
+      letter-spacing:0;
+    }
+    .brand p{
+      margin:6px 0 0;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.45;
+      max-width:68ch;
+    }
+    .eyebrow{
+      color:var(--teal);
+      font-size:12px;
+      font-weight:700;
+      letter-spacing:0;
+      text-transform:uppercase;
+      margin-bottom:6px;
+    }
+    .header-stats{
+      display:flex;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+      gap:8px;
+      min-width:min(46vw,520px);
+    }
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:8px 10px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:var(--panel-2);
+      color:var(--ink);
+      font-size:12px;
+      line-height:1;
+      white-space:nowrap;
+    }
+    .chip strong{font-size:13px}
+    .board{
+      display:grid;
+      grid-template-columns:320px minmax(0,1fr) 290px;
+      gap:14px;
+      align-items:start;
+    }
+    .panel{
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .panel-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:10px;
+      padding:14px 16px 10px;
+      border-bottom:1px solid var(--line);
+      background:linear-gradient(180deg,#fff,#fbfcfd);
+    }
+    .panel-head h2{
+      margin:0;
+      font-size:16px;
+      line-height:1.2;
+    }
+    .panel-head .small{
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.4;
+      text-align:right;
+    }
+    .section{
+      padding:14px 16px 16px;
+      border-bottom:1px solid var(--line);
+    }
+    .section:last-child{border-bottom:0}
+    .field{
+      display:grid;
+      gap:6px;
+      margin-bottom:12px;
+    }
+    .field label{
+      font-size:12px;
+      color:var(--muted);
+    }
+    .field input,.field select{
+      width:100%;
+      border:1px solid var(--line);
+      border-radius:8px;
+      padding:10px 11px;
+      background:#fff;
+      color:var(--ink);
+    }
+    .segmented{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:8px;
+    }
+    .segmented button{
+      border:1px solid var(--line);
+      background:#fff;
+      color:var(--ink);
+      border-radius:8px;
+      padding:10px 12px;
+      cursor:pointer;
+    }
+    .segmented button.active{
+      border-color:transparent;
+      background:var(--ink);
+      color:#fff;
+    }
+    .stats-grid{
+      display:grid;
+      grid-template-columns:repeat(5,minmax(0,1fr));
+      gap:8px;
+    }
+    .stat-box{
+      border:1px solid var(--line);
+      border-radius:8px;
+      background:#fff;
+      padding:8px;
+      min-width:0;
+    }
+    .stat-box span{
+      display:block;
+      font-size:11px;
+      color:var(--muted);
+      margin-bottom:6px;
+      text-align:center;
+    }
+    .stat-box input{
+      width:100%;
+      border:0;
+      text-align:center;
+      font-size:18px;
+      font-weight:700;
+      color:var(--ink);
+      background:transparent;
+      padding:0;
+    }
+    .button-row{
+      display:grid;
+      gap:8px;
+    }
+    .button-row.two{
+      grid-template-columns:1fr 1fr;
+    }
+    .move-button{
+      width:100%;
+      border:1px solid var(--line);
+      background:#fff;
+      color:var(--ink);
+      border-radius:10px;
+      padding:11px 12px;
+      text-align:left;
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      cursor:pointer;
+      transition:transform .08s ease, border-color .15s ease, box-shadow .15s ease;
+    }
+    .move-button:hover:not(:disabled){
+      transform:translateY(-1px);
+      border-color:#aebcca;
+      box-shadow:0 8px 18px rgba(21,32,43,.08);
+    }
+    .move-button:disabled{
+      opacity:.45;
+      cursor:not-allowed;
+    }
+    .move-button .icon{
+      flex:0 0 22px;
+      width:22px;height:22px;
+      display:grid;place-items:center;
+      color:var(--teal);
+      margin-top:1px;
+    }
+    .move-button .text{
+      min-width:0;
+      display:grid;
+      gap:2px;
+    }
+    .move-button .title{
+      font-weight:700;
+      font-size:13px;
+    }
+    .move-button .hint{
+      color:var(--muted);
+      font-size:11px;
+      line-height:1.35;
+    }
+    .arena{
+      display:grid;
+      gap:14px;
+      padding:14px;
+    }
+    .scene{
+      position:relative;
+      min-height:258px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:
+        linear-gradient(180deg,rgba(29,78,216,.07),rgba(15,118,110,.03)),
+        repeating-linear-gradient(90deg,rgba(21,32,43,.05) 0 1px,transparent 1px 28px),
+        repeating-linear-gradient(0deg,rgba(21,32,43,.05) 0 1px,transparent 1px 28px),
+        #f9fbfd;
+      overflow:hidden;
+    }
+    .scene::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:linear-gradient(180deg,rgba(21,32,43,.05),transparent 20%,transparent 80%,rgba(21,32,43,.05));
+      pointer-events:none;
+    }
+    .scene-meta{
+      position:absolute;
+      top:12px;
+      left:12px;
+      right:12px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      align-items:center;
+      justify-content:space-between;
+      z-index:1;
+    }
+    .scene-badge{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 10px;
+      border-radius:999px;
+      background:rgba(255,255,255,.88);
+      border:1px solid var(--line);
+      font-size:12px;
+      backdrop-filter:blur(3px);
+    }
+    .scene-body{
+      position:absolute;
+      inset:54px 12px 12px;
+      display:grid;
+      grid-template-columns:1.3fr .7fr;
+      gap:12px;
+      z-index:1;
+    }
+    .field-scene{
+      position:relative;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.82);
+      border-radius:12px;
+      overflow:hidden;
+      min-height:180px;
+    }
+    .field-scene .label{
+      position:absolute;
+      top:10px;
+      left:10px;
+      padding:6px 8px;
+      border-radius:999px;
+      background:#fff;
+      border:1px solid var(--line);
+      font-size:12px;
+      z-index:1;
+    }
+    .lane{
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:space-around;
+      padding:40px 28px 22px;
+    }
+    .token{
+      position:relative;
+      width:68px;
+      height:68px;
+      border-radius:50%;
+      display:grid;
+      place-items:center;
+      font-weight:800;
+      color:#fff;
+      box-shadow:0 10px 20px rgba(21,32,43,.18);
+      transform:translateZ(0);
+    }
+    .token small{
+      display:block;
+      font-size:11px;
+      font-weight:700;
+      margin-top:2px;
+      opacity:.9;
+    }
+    .token.player{
+      background:linear-gradient(180deg,#0f766e,#115e59);
+    }
+    .token.enemy{
+      background:linear-gradient(180deg,#c2410c,#9a3412);
+    }
+    .token.objective{
+      background:linear-gradient(180deg,#1d4ed8,#1e3a8a);
+      width:56px;
+      height:56px;
+      border-radius:14px;
+    }
+    .token::after{
+      content:"";
+      position:absolute;
+      inset:-7px;
+      border-radius:inherit;
+      border:1px solid rgba(255,255,255,.8);
+      opacity:.8;
+    }
+    .token.player.active::after{
+      box-shadow:0 0 0 8px rgba(15,118,110,.12);
+    }
+    .token.enemy.active::after{
+      box-shadow:0 0 0 8px rgba(194,65,12,.12);
+    }
+    .token.objective.active::after{
+      box-shadow:0 0 0 8px rgba(29,78,216,.12);
+    }
+    .scene-notes{
+      position:absolute;
+      right:12px;
+      bottom:12px;
+      width:min(36ch,42%);
+      padding:10px 12px;
+      border-radius:10px;
+      background:rgba(255,255,255,.9);
+      border:1px solid var(--line);
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.5;
+      box-shadow:0 8px 18px rgba(21,32,43,.05);
+    }
+    .resource-row{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:10px;
+    }
+    .meter{
+      border:1px solid var(--line);
+      border-radius:12px;
+      background:#fff;
+      padding:11px 12px;
+      min-width:0;
+    }
+    .meter .top{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:center;
+      margin-bottom:8px;
+    }
+    .meter .name{
+      font-size:12px;
+      color:var(--muted);
+    }
+    .meter .value{
+      font-size:13px;
+      font-weight:700;
+    }
+    .bar{
+      height:10px;
+      border-radius:999px;
+      background:#e6edf3;
+      overflow:hidden;
+    }
+    .bar > i{
+      display:block;
+      height:100%;
+      width:0%;
+      border-radius:inherit;
+    }
+    .momentum .bar > i{background:linear-gradient(90deg,var(--blue),#2563eb)}
+    .health .bar > i{background:linear-gradient(90deg,var(--green),#22c55e)}
+    .pressure .bar > i{background:linear-gradient(90deg,var(--amber),#f59e0b)}
+    .summary-row{
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:10px;
+    }
+    .mini{
+      border:1px solid var(--line);
+      border-radius:10px;
+      background:#fff;
+      padding:10px 11px;
+      min-width:0;
+    }
+    .mini .k{
+      font-size:11px;
+      color:var(--muted);
+      margin-bottom:4px;
+    }
+    .mini .v{
+      font-size:13px;
+      font-weight:700;
+      line-height:1.35;
+      word-break:break-word;
+    }
+    .result-banner{
+      border:1px solid var(--line);
+      border-radius:12px;
+      background:var(--panel-2);
+      padding:12px 14px;
+      min-height:76px;
+      display:grid;
+      gap:6px;
+      align-content:center;
+    }
+    .result-banner .title{
+      font-weight:800;
+      font-size:14px;
+    }
+    .result-banner .text{
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.5;
+    }
+    .result-banner.good{border-color:rgba(21,128,61,.25);background:var(--green-soft)}
+    .result-banner.warn{border-color:rgba(180,83,9,.25);background:var(--amber-soft)}
+    .result-banner.bad{border-color:rgba(194,65,12,.25);background:var(--red-soft)}
+    .track-panel{
+      border:1px solid var(--line);
+      border-radius:12px;
+      background:#fff;
+      padding:12px;
+      display:grid;
+      gap:10px;
+    }
+    .track-header{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .track-header .label{
+      font-size:12px;
+      color:var(--muted);
+    }
+    .track-header .rank{
+      font-size:13px;
+      font-weight:700;
+    }
+    .track{
+      display:grid;
+      grid-template-columns:repeat(10,minmax(0,1fr));
+      gap:6px;
+    }
+    .track-box{
+      aspect-ratio:1/1;
+      border-radius:8px;
+      border:1px solid var(--line);
+      background:#f4f7fa;
+      position:relative;
+      overflow:hidden;
+    }
+    .track-box.filled{
+      background:linear-gradient(180deg,rgba(15,118,110,.95),rgba(15,118,110,.82));
+      border-color:transparent;
+    }
+    .track-box.target{
+      outline:2px solid rgba(180,83,9,.85);
+      outline-offset:-2px;
+    }
+    .track-caption{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      font-size:12px;
+      color:var(--muted);
+      flex-wrap:wrap;
+    }
+    .log{
+      max-height:320px;
+      overflow:auto;
+      display:grid;
+      gap:8px;
+      padding-right:2px;
+    }
+    .log-item{
+      border:1px solid var(--line);
+      border-radius:10px;
+      background:#fff;
+      padding:10px 11px;
+      display:grid;
+      gap:4px;
+    }
+    .log-item .meta{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:center;
+      font-size:11px;
+      color:var(--muted);
+    }
+    .log-item .headline{
+      font-size:13px;
+      font-weight:700;
+      line-height:1.35;
+    }
+    .log-item.good{border-color:rgba(21,128,61,.18);background:rgba(221,245,228,.55)}
+    .log-item.warn{border-color:rgba(180,83,9,.18);background:rgba(247,231,210,.55)}
+    .log-item.bad{border-color:rgba(194,65,12,.18);background:rgba(253,231,219,.55)}
+    .moves{
+      display:grid;
+      gap:14px;
+      padding:14px;
+    }
+    .move-list{
+      display:grid;
+      gap:8px;
+    }
+    .footer-note{
+      padding:0 16px 16px;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.5;
+    }
+    .choice-drawer{
+      position:fixed;
+      left:16px;
+      right:16px;
+      bottom:16px;
+      z-index:20;
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:14px;
+      box-shadow:0 20px 60px rgba(21,32,43,.18);
+      padding:14px;
+      display:none;
+      gap:12px;
+    }
+    .choice-drawer.open{display:grid}
+    .choice-top{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:flex-start;
+    }
+    .choice-top h3{
+      margin:0;
+      font-size:15px;
+    }
+    .choice-top p{
+      margin:4px 0 0;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.45;
+    }
+    .choice-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+      gap:8px;
+    }
+    .choice-option{
+      border:1px solid var(--line);
+      background:var(--panel-2);
+      color:var(--ink);
+      border-radius:10px;
+      padding:10px 11px;
+      text-align:left;
+      cursor:pointer;
+      min-height:54px;
+    }
+    .choice-option.selected{
+      border-color:transparent;
+      background:rgba(15,118,110,.12);
+      box-shadow:inset 0 0 0 2px rgba(15,118,110,.35);
+    }
+    .choice-option .title{
+      display:block;
+      font-weight:700;
+      font-size:13px;
+      line-height:1.35;
+    }
+    .choice-option .desc{
+      display:block;
+      margin-top:4px;
+      color:var(--muted);
+      font-size:11px;
+      line-height:1.45;
+    }
+    .choice-actions{
+      display:flex;
+      justify-content:flex-end;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    .choice-actions button{
+      border:1px solid var(--line);
+      background:#fff;
+      color:var(--ink);
+      border-radius:10px;
+      padding:10px 12px;
+      cursor:pointer;
+    }
+    .choice-actions button.primary{
+      border-color:transparent;
+      background:var(--ink);
+      color:#fff;
+    }
+    .choice-actions button:disabled{
+      opacity:.45;
+      cursor:not-allowed;
+    }
+    .sr-only{
+      position:absolute;
+      width:1px;
+      height:1px;
+      padding:0;
+      margin:-1px;
+      overflow:hidden;
+      clip:rect(0,0,0,0);
+      white-space:nowrap;
+      border:0;
+    }
+    .icon{
+      width:18px;
+      height:18px;
+      display:inline-block;
+      flex:0 0 auto;
+    }
+    .muted{color:var(--muted)}
+    @media (max-width:1100px){
+      .board{grid-template-columns:1fr}
+      .header-stats{min-width:0;justify-content:flex-start}
+      .moves{order:3}
+      .scene-body{grid-template-columns:1fr}
+    }
+    @media (max-width:720px){
+      .app{padding:10px}
+      .topbar{padding:12px}
+      .brand h1{font-size:21px}
+      .summary-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .resource-row{grid-template-columns:1fr}
+      .stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .button-row.two{grid-template-columns:1fr}
+      .scene{min-height:320px}
+      .scene-body{inset:52px 10px 10px}
+      .scene-notes{width:auto;left:10px;right:10px}
+      .lane{padding:40px 16px 18px}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="eyebrow">aaa.pdf combat flow</div>
+        <h1>模拟战斗</h1>
+        <p>先进入战斗，再用主动或被动动作推进目标，最后按进度做出决定性一击。支持详细回合和一键快切两种玩法。</p>
+      </div>
+      <div class="header-stats" id="headerStats"></div>
+    </header>
+
+    <main class="board">
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>战斗设置</h2>
+            <div class="small">目标、敌人、距离与战术</div>
+          </div>
+          <div class="small"><span id="turnLabel">回合 0</span><br><span id="stateLabel">未开战</span></div>
+        </div>
+        <div class="section">
+          <div class="field">
+            <label for="objectiveInput">目标</label>
+            <input id="objectiveInput" value="逃离海盗舰队" />
+          </div>
+          <div class="field">
+            <label for="enemyInput">敌人</label>
+            <input id="enemyInput" value="海盗船队" />
+          </div>
+          <div class="field">
+            <label for="rankSelect">目标难度</label>
+            <select id="rankSelect"></select>
+          </div>
+          <div class="field">
+            <label for="approachSelect">进入战斗方式</label>
+            <select id="approachSelect"></select>
+          </div>
+          <div class="field">
+            <label for="tacticSelect">战术倾向</label>
+            <select id="tacticSelect"></select>
+          </div>
+          <div class="field">
+            <label>距离</label>
+            <div class="segmented" id="rangeToggle"></div>
+          </div>
+          <div class="field">
+            <label>模式</label>
+            <div class="segmented" id="modeToggle"></div>
+          </div>
+          <div class="field">
+            <label>属性</label>
+            <div class="stats-grid">
+              <div class="stat-box"><span>edge</span><input id="edgeStat" type="number" min="-1" max="4" step="1"></div>
+              <div class="stat-box"><span>heart</span><input id="heartStat" type="number" min="-1" max="4" step="1"></div>
+              <div class="stat-box"><span>iron</span><input id="ironStat" type="number" min="-1" max="4" step="1"></div>
+              <div class="stat-box"><span>shadow</span><input id="shadowStat" type="number" min="-1" max="4" step="1"></div>
+              <div class="stat-box"><span>wits</span><input id="witsStat" type="number" min="-1" max="4" step="1"></div>
+            </div>
+          </div>
+          <div class="button-row two">
+            <button class="move-button" id="enterBtn" type="button" data-move="enter">
+              <span class="icon" id="enterIcon"></span>
+              <span class="text">
+                <span class="title">Enter the Fray</span>
+                <span class="hint">开战并决定初始位置</span>
+              </span>
+            </button>
+            <button class="move-button" id="resetBtn" type="button">
+              <span class="icon" id="resetIcon"></span>
+              <span class="text">
+                <span class="title">重置</span>
+                <span class="hint">清空当前战局</span>
+              </span>
+            </button>
+          </div>
+        </div>
+        <div class="footer-note">
+          说明：`Strike / Clash` 会按距离自动切换关键属性；`Take Decisive Action` 会直接用当前进度结算；`Battle` 是快切模式。
+        </div>
+      </section>
+
+      <section class="panel arena">
+        <div class="scene" id="scene">
+          <div class="scene-meta">
+            <div class="scene-badge" id="sceneBadgeLeft">未进入战斗</div>
+            <div class="scene-badge" id="sceneBadgeRight">目标线 0 / 10</div>
+          </div>
+          <div class="scene-body">
+            <div class="field-scene">
+              <div class="label">战场</div>
+              <div class="lane">
+                <div class="token player" id="playerToken"><span id="playerMark">P</span></div>
+                <div class="token objective" id="objectiveToken"><span id="objectiveMark">O</span></div>
+                <div class="token enemy" id="enemyToken"><span id="enemyMark">E</span></div>
+              </div>
+              <div class="scene-notes" id="sceneNotes"></div>
+            </div>
+            <div class="track-panel">
+              <div class="track-header">
+                <div>
+                  <div class="label">进度轨道</div>
+                  <div class="rank" id="rankLabel">Formidable</div>
+                </div>
+                <div class="label" id="progressText">0 / 10</div>
+              </div>
+              <div class="track" id="progressTrack"></div>
+              <div class="track-caption">
+                <span id="objectiveCaption">目标：逃离海盗舰队</span>
+                <span id="targetCaption">推进到目标线后即可尝试决断</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="summary-row">
+          <div class="mini"><div class="k">位置</div><div class="v" id="positionText">待定</div></div>
+          <div class="mini"><div class="k">当前重点</div><div class="v" id="statText">edge</div></div>
+          <div class="mini"><div class="k">下一次加成</div><div class="v" id="bonusText">+0</div></div>
+          <div class="mini"><div class="k">结果</div><div class="v" id="rollText">--</div></div>
+        </div>
+
+        <div class="resource-row">
+          <div class="meter momentum">
+            <div class="top"><span class="name">Momentum</span><span class="value" id="momentumText">2 / 10</span></div>
+            <div class="bar"><i id="momentumBar"></i></div>
+          </div>
+          <div class="meter health">
+            <div class="top"><span class="name">Health</span><span class="value" id="healthText">5 / 5</span></div>
+            <div class="bar"><i id="healthBar"></i></div>
+          </div>
+          <div class="meter pressure">
+            <div class="top"><span class="name">Pressure</span><span class="value" id="pressureText">0 / 6</span></div>
+            <div class="bar"><i id="pressureBar"></i></div>
+          </div>
+        </div>
+
+        <div class="result-banner" id="resultBanner">
+          <div class="title">准备就绪</div>
+          <div class="text">设置好目标后点击 Enter the Fray。</div>
+        </div>
+
+        <div class="log" id="log"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>行动</h2>
+            <div class="small">按流程推进战斗</div>
+          </div>
+          <div class="small" id="moveHint">选择一个动作</div>
+        </div>
+        <div class="section move-list">
+          <button class="move-button" id="gainBtn" type="button" data-move="gain">
+            <span class="icon" id="gainIcon"></span>
+            <span class="text">
+              <span class="title">Gain Ground</span>
+              <span class="hint">control only</span>
+            </span>
+          </button>
+          <button class="move-button" id="reactBtn" type="button" data-move="react">
+            <span class="icon" id="reactIcon"></span>
+            <span class="text">
+              <span class="title">React Under Fire</span>
+              <span class="hint">bad spot only</span>
+            </span>
+          </button>
+          <button class="move-button" id="strikeBtn" type="button" data-move="strike">
+            <span class="icon" id="strikeIcon"></span>
+            <span class="text">
+              <span class="title">Strike</span>
+              <span class="hint" id="strikeHint">close: iron / distance: edge</span>
+            </span>
+          </button>
+          <button class="move-button" id="clashBtn" type="button" data-move="clash">
+            <span class="icon" id="clashIcon"></span>
+            <span class="text">
+              <span class="title">Clash</span>
+              <span class="hint" id="clashHint">close: iron / distance: edge</span>
+            </span>
+          </button>
+          <button class="move-button" id="decisiveBtn" type="button" data-move="decisive">
+            <span class="icon" id="decisiveIcon"></span>
+            <span class="text">
+              <span class="title">Take Decisive Action</span>
+              <span class="hint">按当前进度结算目标</span>
+            </span>
+          </button>
+          <button class="move-button" id="battleBtn" type="button" data-move="battle">
+            <span class="icon" id="battleIcon"></span>
+            <span class="text">
+              <span class="title">Battle</span>
+              <span class="hint">快切一回合解决战斗</span>
+            </span>
+          </button>
+          <button class="move-button" id="defeatBtn" type="button" data-move="defeat">
+            <span class="icon" id="defeatIcon"></span>
+            <span class="text">
+              <span class="title">Face Defeat</span>
+              <span class="hint">放弃当前目标并承受代价</span>
+            </span>
+          </button>
+        </div>
+        <div class="footer-note">
+          这套流程来自 `aaa.pdf` 的战斗章节：先定目标，再积累优势，最后用进度结算。你可以把它当成一个小型战斗沙盘。
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="choice-drawer" id="choiceDrawer" aria-live="polite">
+    <div class="choice-top">
+      <div>
+        <h3 id="choiceTitle">选择效果</h3>
+        <p id="choicePrompt">从下面选项中挑选。</p>
+      </div>
+      <div class="chip" id="choiceCount">0 / 1</div>
+    </div>
+    <div class="choice-grid" id="choiceGrid"></div>
+    <div class="choice-actions">
+      <button type="button" id="choiceCancel">取消</button>
+      <button type="button" id="choiceConfirm" class="primary" disabled>确认</button>
+    </div>
+  </div>
+
+  <script>
+    const RANKS = {
+      troublesome: { label: 'Troublesome', target: 4, color: 'var(--green)' },
+      dangerous: { label: 'Dangerous', target: 5, color: 'var(--amber)' },
+      formidable: { label: 'Formidable', target: 6, color: 'var(--blue)' },
+      extreme: { label: 'Extreme', target: 7, color: 'var(--red)' },
+      epic: { label: 'Epic', target: 8, color: '#7c3aed' }
+    };
+
+    const APPROACHES = {
+      move: { label: 'On the move', stat: 'edge' },
+      faceoff: { label: 'Facing off', stat: 'heart' },
+      close: { label: 'Close quarters', stat: 'iron' },
+      unaware: { label: 'Against unaware foe', stat: 'shadow' },
+      trap: { label: 'Sizing up a trap', stat: 'wits' }
+    };
+
+    const TACTICS = {
+      edge: 'edge',
+      heart: 'heart',
+      iron: 'iron',
+      shadow: 'shadow',
+      wits: 'wits'
+    };
+
+    const STORAGE_KEY = 'combat-sim-v1';
+
+    const icons = {
+      enter: svg('<path d="M13 5h6v6"></path><path d="M19 5 10 14"></path><path d="M5 19h14"></path>'),
+      reset: svg('<path d="M4 4v6h6"></path><path d="M4.6 15a8 8 0 1 0 .4-5"></path>'),
+      gain: svg('<path d="M12 5v14"></path><path d="m5 12 7-7 7 7"></path>'),
+      react: svg('<path d="M6 17V7"></path><path d="M18 17V7"></path><path d="M6 12h12"></path>'),
+      strike: svg('<path d="m4 20 6-6"></path><path d="m20 4-6 6"></path><path d="M8 4h4l8 8v4"></path>'),
+      clash: svg('<path d="m5 19 6-6"></path><path d="m19 5-6 6"></path><path d="M4 9h6v6H4z"></path><path d="M14 9h6v6h-6z"></path>'),
+      decisive: svg('<path d="M12 3 6 13h4l-1 8 6-10h-4z"></path>'),
+      battle: svg('<path d="M4 12h16"></path><path d="M12 4v16"></path><path d="m6 6 12 12"></path><path d="m18 6-12 12"></path>'),
+      defeat: svg('<path d="M6 6l12 12"></path><path d="M18 6 6 18"></path>')
+    };
+
+    const defaultState = {
+      started: false,
+      complete: false,
+      defeated: false,
+      objective: '逃离海盗舰队',
+      enemy: '海盗船队',
+      rank: 'formidable',
+      approach: 'move',
+      tactic: 'edge',
+      range: 'distance',
+      mode: 'detailed',
+      position: null,
+      progress: 0,
+      momentum: 2,
+      health: 5,
+      pressure: 0,
+      nextBonus: 0,
+      turn: 0,
+      stats: { edge: 2, heart: 1, iron: 2, shadow: 1, wits: 1 },
+      log: []
+    };
+
+    const els = {
+      objectiveInput: document.getElementById('objectiveInput'),
+      enemyInput: document.getElementById('enemyInput'),
+      rankSelect: document.getElementById('rankSelect'),
+      approachSelect: document.getElementById('approachSelect'),
+      tacticSelect: document.getElementById('tacticSelect'),
+      rangeToggle: document.getElementById('rangeToggle'),
+      modeToggle: document.getElementById('modeToggle'),
+      edgeStat: document.getElementById('edgeStat'),
+      heartStat: document.getElementById('heartStat'),
+      ironStat: document.getElementById('ironStat'),
+      shadowStat: document.getElementById('shadowStat'),
+      witsStat: document.getElementById('witsStat'),
+      enterBtn: document.getElementById('enterBtn'),
+      resetBtn: document.getElementById('resetBtn'),
+      gainBtn: document.getElementById('gainBtn'),
+      reactBtn: document.getElementById('reactBtn'),
+      strikeBtn: document.getElementById('strikeBtn'),
+      clashBtn: document.getElementById('clashBtn'),
+      decisiveBtn: document.getElementById('decisiveBtn'),
+      battleBtn: document.getElementById('battleBtn'),
+      defeatBtn: document.getElementById('defeatBtn'),
+      headerStats: document.getElementById('headerStats'),
+      sceneBadgeLeft: document.getElementById('sceneBadgeLeft'),
+      sceneBadgeRight: document.getElementById('sceneBadgeRight'),
+      sceneNotes: document.getElementById('sceneNotes'),
+      playerToken: document.getElementById('playerToken'),
+      enemyToken: document.getElementById('enemyToken'),
+      objectiveToken: document.getElementById('objectiveToken'),
+      playerMark: document.getElementById('playerMark'),
+      enemyMark: document.getElementById('enemyMark'),
+      objectiveMark: document.getElementById('objectiveMark'),
+      progressTrack: document.getElementById('progressTrack'),
+      rankLabel: document.getElementById('rankLabel'),
+      progressText: document.getElementById('progressText'),
+      objectiveCaption: document.getElementById('objectiveCaption'),
+      targetCaption: document.getElementById('targetCaption'),
+      positionText: document.getElementById('positionText'),
+      statText: document.getElementById('statText'),
+      bonusText: document.getElementById('bonusText'),
+      rollText: document.getElementById('rollText'),
+      momentumText: document.getElementById('momentumText'),
+      healthText: document.getElementById('healthText'),
+      pressureText: document.getElementById('pressureText'),
+      momentumBar: document.getElementById('momentumBar'),
+      healthBar: document.getElementById('healthBar'),
+      pressureBar: document.getElementById('pressureBar'),
+      resultBanner: document.getElementById('resultBanner'),
+      log: document.getElementById('log'),
+      turnLabel: document.getElementById('turnLabel'),
+      stateLabel: document.getElementById('stateLabel'),
+      moveHint: document.getElementById('moveHint'),
+      strikeHint: document.getElementById('strikeHint'),
+      clashHint: document.getElementById('clashHint'),
+      choiceDrawer: document.getElementById('choiceDrawer'),
+      choiceTitle: document.getElementById('choiceTitle'),
+      choicePrompt: document.getElementById('choicePrompt'),
+      choiceCount: document.getElementById('choiceCount'),
+      choiceGrid: document.getElementById('choiceGrid'),
+      choiceCancel: document.getElementById('choiceCancel'),
+      choiceConfirm: document.getElementById('choiceConfirm')
+    };
+
+    let state = loadState();
+    let choiceState = null;
+
+    populateControls();
+    bindEvents();
+    renderIcons();
+    syncInputsFromState();
+    render();
+
+    function svg(inner) {
+      return `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${inner}</svg>`;
+    }
+
+    function populateControls() {
+      Object.entries(RANKS).forEach(([key, info]) => {
+        const opt = document.createElement('option');
+        opt.value = key;
+        opt.textContent = info.label;
+        els.rankSelect.appendChild(opt);
+      });
+      Object.entries(APPROACHES).forEach(([key, info]) => {
+        const opt = document.createElement('option');
+        opt.value = key;
+        opt.textContent = info.label;
+        els.approachSelect.appendChild(opt);
+      });
+      Object.keys(TACTICS).forEach((key) => {
+        const opt = document.createElement('option');
+        opt.value = key;
+        opt.textContent = key;
+        els.tacticSelect.appendChild(opt);
+      });
+
+      makeSegmented(els.rangeToggle, [
+        { value: 'close', label: '近战' },
+        { value: 'distance', label: '远程' }
+      ], 'range');
+      makeSegmented(els.modeToggle, [
+        { value: 'detailed', label: '详细' },
+        { value: 'blur', label: '快切' }
+      ], 'mode');
+    }
+
+    function makeSegmented(container, items, key) {
+      container.innerHTML = '';
+      items.forEach(item => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.dataset.value = item.value;
+        btn.textContent = item.label;
+        btn.addEventListener('click', () => {
+          state[key] = item.value;
+          saveInputs();
+          render();
+        });
+        container.appendChild(btn);
+      });
+    }
+
+    function bindEvents() {
+      [els.objectiveInput, els.enemyInput, els.rankSelect, els.approachSelect, els.tacticSelect,
+        els.edgeStat, els.heartStat, els.ironStat, els.shadowStat, els.witsStat]
+        .forEach(el => el.addEventListener('input', onSettingsInput));
+
+      els.enterBtn.addEventListener('click', () => doMove('enter'));
+      els.resetBtn.addEventListener('click', resetBattle);
+      els.gainBtn.addEventListener('click', () => doMove('gain'));
+      els.reactBtn.addEventListener('click', () => doMove('react'));
+      els.strikeBtn.addEventListener('click', () => doMove('strike'));
+      els.clashBtn.addEventListener('click', () => doMove('clash'));
+      els.decisiveBtn.addEventListener('click', () => doMove('decisive'));
+      els.battleBtn.addEventListener('click', () => doMove('battle'));
+      els.defeatBtn.addEventListener('click', () => doMove('defeat'));
+      els.choiceCancel.addEventListener('click', () => closeChoice(false));
+      els.choiceConfirm.addEventListener('click', () => confirmChoice());
+    }
+
+    function onSettingsInput() {
+      state.objective = els.objectiveInput.value.trim() || '未命名目标';
+      state.enemy = els.enemyInput.value.trim() || '未知敌人';
+      state.rank = els.rankSelect.value;
+      state.approach = els.approachSelect.value;
+      state.tactic = els.tacticSelect.value;
+      state.stats.edge = clampInt(els.edgeStat.value, -1, 4, 2);
+      state.stats.heart = clampInt(els.heartStat.value, -1, 4, 1);
+      state.stats.iron = clampInt(els.ironStat.value, -1, 4, 2);
+      state.stats.shadow = clampInt(els.shadowStat.value, -1, 4, 1);
+      state.stats.wits = clampInt(els.witsStat.value, -1, 4, 1);
+      saveInputs();
+      render();
+    }
+
+    function syncInputsFromState() {
+      els.objectiveInput.value = state.objective;
+      els.enemyInput.value = state.enemy;
+      els.rankSelect.value = state.rank;
+      els.approachSelect.value = state.approach;
+      els.tacticSelect.value = state.tactic;
+      els.edgeStat.value = state.stats.edge;
+      els.heartStat.value = state.stats.heart;
+      els.ironStat.value = state.stats.iron;
+      els.shadowStat.value = state.stats.shadow;
+      els.witsStat.value = state.stats.wits;
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return structuredClone(defaultState);
+        const parsed = JSON.parse(raw);
+        return {
+          ...structuredClone(defaultState),
+          ...parsed,
+          stats: { ...defaultState.stats, ...(parsed.stats || {}) },
+          log: Array.isArray(parsed.log) ? parsed.log : []
+        };
+      } catch {
+        return structuredClone(defaultState);
+      }
+    }
+
+    function saveInputs() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch {}
+    }
+
+    function resetBattle() {
+      state.started = false;
+      state.complete = false;
+      state.defeated = false;
+      state.position = null;
+      state.progress = 0;
+      state.momentum = 2;
+      state.health = 5;
+      state.pressure = 0;
+      state.nextBonus = 0;
+      state.turn = 0;
+      state.log = [];
+      choiceState = null;
+      closeChoice(false);
+      addLog('战局重置', '战斗已清空，等待新的流程。', 'warn', true);
+      saveInputs();
+      render();
+    }
+
+    function doMove(move) {
+      if (choiceState) return;
+      if (move !== 'enter' && !state.started) {
+        banner('warn', '先进入战斗', '请先点击 Enter the Fray 决定起始位置。');
+        return;
+      }
+      if ((state.complete || state.defeated) && move !== 'enter') {
+        banner('warn', '当前战斗已结束', '可以重置，或修改设置后重新进入战斗。');
+        return;
+      }
+      state.turn += move === 'enter' || state.started ? 1 : 0;
+      let result;
+      switch (move) {
+        case 'enter': result = moveEnterTheFray(); break;
+        case 'gain': result = moveGainGround(); break;
+        case 'react': result = moveReactUnderFire(); break;
+        case 'strike': result = moveStrike(); break;
+        case 'clash': result = moveClash(); break;
+        case 'decisive': result = moveDecisiveAction(); break;
+        case 'battle': result = moveBattle(); break;
+        case 'defeat': result = moveFaceDefeat(); break;
+      }
+      saveInputs();
+      render();
+      if (result && result.choice) openChoice(result.choice);
+    }
+
+    function moveEnterTheFray() {
+      state.started = true;
+      state.complete = false;
+      state.defeated = false;
+      state.progress = 0;
+      state.position = null;
+      const stat = APPROACHES[state.approach].stat;
+      const roll = rollAction(stat);
+      state.rollText = roll.display;
+      if (roll.result === 'strong') {
+        state.position = 'control';
+        adjustMomentum(2);
+        banner('good', '强势进入战斗', `${roll.label}。你掌控了开场节奏，并获得 +2 momentum。`);
+        addLog('Enter the Fray', `${roll.label}，你以控制局面开场。`, 'good');
+      } else if (roll.result === 'weak') {
+        banner('warn', '开场有利但要二选一', `${roll.label}。选择：起始在控制中，或获得 +2 momentum。`);
+        addLog('Enter the Fray', `${roll.label}，你拿到了一个有利起点。`, 'warn');
+        return {
+          choice: {
+            title: 'Enter the Fray',
+            prompt: '弱成功。选择一个开场优势。',
+            min: 1,
+            max: 1,
+            options: [
+              { id: 'control', title: '起始在控制中', desc: '把位置设为控制。' },
+              { id: 'momentum2', title: '+2 momentum', desc: '把动量提升两点。' }
+            ],
+            apply: selected => {
+              if (selected.includes('control')) state.position = 'control';
+              if (selected.includes('momentum2')) adjustMomentum(2);
+              banner('good', '战斗开始', '开场优势已确认。');
+              addLog('开场优势', selected.includes('control') ? '你从控制中切入战斗。' : '你先拿到额外动量。', 'good');
+            }
+          }
+        };
+      } else {
+        state.position = 'bad';
+        adjustPressure(1);
+        banner('bad', '开场失手', `${roll.label}。你一开始就处于不利位置。`);
+        addLog('Enter the Fray', `${roll.label}，你被迫在坏位置开局。`, 'bad');
+      }
+    }
+
+    function moveGainGround() {
+      if (state.position !== 'control') {
+        banner('warn', '需要控制局面', 'Gain Ground 只能在你占据主动时使用。');
+        return;
+      }
+      const stat = state.tactic;
+      const roll = rollAction(stat);
+      state.rollText = roll.display;
+      if (roll.result === 'strong') {
+        banner('good', '你稳住并扩大优势', `${roll.label}。选择两项收益。`);
+        addLog('Gain Ground', `${roll.label}，你在控制中继续推进。`, 'good');
+        return {
+          choice: {
+            title: 'Gain Ground',
+            prompt: '强成功。选两项。',
+            min: 2,
+            max: 2,
+            options: [
+              { id: 'progress1', title: '推进 +1', desc: '进度增加 1。' },
+              { id: 'momentum2', title: '+2 momentum', desc: '动量增加 2。' },
+              { id: 'bonus1', title: '下次 +1', desc: '下一次行动获得 +1。' }
+            ],
+            apply: selected => applyChoiceEffects(selected)
+          }
+        };
+      }
+      if (roll.result === 'weak') {
+        banner('warn', '你前进了一点', `${roll.label}。选择一项收益，并保持控制。`);
+        addLog('Gain Ground', `${roll.label}，你继续构筑优势。`, 'warn');
+        return {
+          choice: {
+            title: 'Gain Ground',
+            prompt: '弱成功。选一项。',
+            min: 1,
+            max: 1,
+            options: [
+              { id: 'progress1', title: '推进 +1', desc: '进度增加 1。' },
+              { id: 'momentum2', title: '+2 momentum', desc: '动量增加 2。' },
+              { id: 'bonus1', title: '下次 +1', desc: '下一次行动获得 +1。' }
+            ],
+            apply: selected => applyChoiceEffects(selected)
+          }
+        };
+      }
+      state.position = 'bad';
+      adjustPressure(1);
+      applySetback(false);
+      banner('bad', '敌人夺回节奏', `${roll.label}。你失去主动并要处理新的麻烦。`);
+      addLog('Gain Ground', `${roll.label}，对方抓住了破绽。`, 'bad');
+    }
+
+    function moveReactUnderFire() {
+      if (state.position !== 'bad') {
+        banner('warn', '只有在坏位置时才需要反应', 'React Under Fire 适合在被压制时使用。');
+        return;
+      }
+      const stat = state.tactic;
+      const roll = rollAction(stat);
+      state.rollText = roll.display;
+      if (roll.result === 'strong') {
+        state.position = 'control';
+        adjustMomentum(1);
+        banner('good', '你顶住了压力', `${roll.label}。你重新取得控制。`);
+        addLog('React Under Fire', `${roll.label}，你脱离险境。`, 'good');
+        return;
+      }
+      if (roll.result === 'weak') {
+        applySetback(state.range === 'close');
+        banner('warn', '你避开了最糟的一击', `${roll.label}。代价已经结算，你仍处于坏位置。`);
+        addLog('React Under Fire', `${roll.label}，你付出代价后继续撑住。`, 'warn');
+        return;
+      }
+      applySetback(true);
+      banner('bad', '危险升级', `${roll.label}。局面变得更糟了。`);
+      addLog('React Under Fire', `${roll.label}，对手把你压得更紧。`, 'bad');
+    }
+
+    function moveStrike() {
+      if (state.position !== 'control') {
+        banner('warn', '需要控制局面', 'Strike 只能在你占据主动时使用。');
+        return;
+      }
+      const stat = state.range === 'close' ? 'iron' : 'edge';
+      const roll = rollAction(stat);
+      state.rollText = roll.display;
+      if (roll.result === 'strong') {
+        markProgress(2);
+        banner('good', '打出漂亮一击', `${roll.label}。你造成巨大推进，并保持控制。`);
+        addLog('Strike', `${roll.label}，你沉重打击了目标。`, 'good');
+        return;
+      }
+      if (roll.result === 'weak') {
+        markProgress(2);
+        state.position = 'bad';
+        banner('warn', '命中但暴露自己', `${roll.label}。你推进了目标，但落入坏位置。`);
+        addLog('Strike', `${roll.label}，你换来进度，也把自己推向险境。`, 'warn');
+        return;
+      }
+      state.position = 'bad';
+      adjustPressure(2);
+      applySetback(state.range === 'close');
+      banner('bad', '这一击被化解', `${roll.label}。局势反转，你得先收拾代价。`);
+      addLog('Strike', `${roll.label}，你的攻击被对方压了回去。`, 'bad');
+    }
+
+    function moveClash() {
+      if (state.position !== 'bad') {
+        banner('warn', '只有在坏位置时才会 Clash', 'Clash 是你被迫反击时的动作。');
+        return;
+      }
+      const stat = state.range === 'close' ? 'iron' : 'edge';
+      const roll = rollAction(stat);
+      state.rollText = roll.display;
+      if (roll.result === 'strong') {
+        markProgress(2);
+        state.position = 'control';
+        banner('good', '你扭转了交换', `${roll.label}。你压住了对手并夺回控制。`);
+        addLog('Clash', `${roll.label}，你在混乱中反推回去。`, 'good');
+        return;
+      }
+      if (roll.result === 'weak') {
+        markProgress(1);
+        applySetback(state.range === 'close');
+        banner('warn', '你顶住了反击', `${roll.label}。你推进了一点，但仍在坏位置。`);
+        addLog('Clash', `${roll.label}，你换来了一点进度，也付出代价。`, 'warn');
+        return;
+      }
+      applySetback(true);
+      banner('bad', '对方压制了你', `${roll.label}。这次交换完全落在下风。`);
+      addLog('Clash', `${roll.label}，你被对方彻底接管了节奏。`, 'bad');
+    }
+
+    function moveDecisiveAction() {
+      if (state.progress <= 0) {
+        banner('warn', '进度还太少', '你仍然可以强行尝试，但结果大概率不理想。');
+      }
+      const ch1 = rollDie(10);
+      const ch2 = rollDie(10);
+      const raw = progressOutcome(state.progress, ch1, ch2);
+      const matched = ch1 === ch2;
+      let outcome = raw;
+      if (state.position === 'bad') {
+        if (raw === 'strong' && !matched) outcome = 'weak';
+        if (raw === 'weak') outcome = 'miss';
+      }
+      state.rollText = `P:${state.progress} vs ${ch1}/${ch2}`;
+      if (outcome === 'strong') {
+        state.complete = true;
+        state.position = 'control';
+        adjustMomentum(1);
+        banner('good', '目标达成', `进度 ${state.progress} 对上 ${ch1}/${ch2}。你干净利落地拿下目标。`);
+        addLog('Take Decisive Action', `进度 ${state.progress} 对上 ${ch1}/${ch2}，你取得决定性胜利。`, 'good');
+        return;
+      }
+      if (outcome === 'weak') {
+        state.complete = true;
+        state.position = 'bad';
+        const cost = decisiveCost();
+        applyDecisiveCost(cost);
+        banner('warn', '赢了，但要付账', `进度 ${state.progress} 对上 ${ch1}/${ch2}。${cost.text}`);
+        addLog('Take Decisive Action', `进度 ${state.progress} 对上 ${ch1}/${ch2}，但代价很重。`, 'warn');
+        return;
+      }
+      state.defeated = true;
+      state.position = 'bad';
+      applySetback(true);
+      banner('bad', '目标失手', `进度 ${state.progress} 对上 ${ch1}/${ch2}。这次决断失败了。`);
+      addLog('Take Decisive Action', `进度 ${state.progress} 对上 ${ch1}/${ch2}，你失去了这次机会。`, 'bad');
+    }
+
+    function moveBattle() {
+      const stat = state.tactic;
+      const roll = rollAction(stat);
+      state.rollText = roll.display;
+      if (roll.result === 'strong') {
+        state.progress = 10;
+        state.complete = true;
+        state.position = 'control';
+        adjustMomentum(2);
+        banner('good', '快切胜利', `${roll.label}。战斗被一笔带过，你直接拿下目标。`);
+        addLog('Battle', `${roll.label}，你在混战中迅速完成目标。`, 'good');
+        return;
+      }
+      if (roll.result === 'weak') {
+        state.progress = 10;
+        state.complete = true;
+        state.position = 'bad';
+        applySetback(state.range === 'close');
+        banner('warn', '快切成功，但有代价', `${roll.label}。你完成了目标，但要承受后果。`);
+        addLog('Battle', `${roll.label}，你完成了目标，却留下麻烦。`, 'warn');
+        return;
+      }
+      state.defeated = true;
+      state.position = 'bad';
+      applySetback(true);
+      banner('bad', '快切失利', `${roll.label}。这场战斗没有按你的方式结束。`);
+      addLog('Battle', `${roll.label}，你在快切结算里输了这局。`, 'bad');
+    }
+
+    function moveFaceDefeat() {
+      state.defeated = true;
+      state.position = 'bad';
+      adjustPressure(1);
+      banner('bad', '你放弃了当前目标', '清空这条目标线，并承受故事上的代价。');
+      addLog('Face Defeat', '你主动放弃或被迫失去目标。', 'bad');
+    }
+
+    function applyChoiceEffects(selected) {
+      selected.forEach(id => {
+        if (id === 'progress1') markProgress(1);
+        if (id === 'momentum2') adjustMomentum(2);
+        if (id === 'bonus1') state.nextBonus = Math.min(3, state.nextBonus + 1);
+        if (id === 'control') state.position = 'control';
+      });
+      banner('good', '选择已结算', '你的收益已经落到场上。');
+      addLog('效果选择', `已应用：${selected.join(' / ')}`, 'good');
+    }
+
+    function applySetback(closeRange) {
+      if (closeRange) {
+        adjustHealth(-1);
+      } else {
+        adjustMomentum(-2);
+      }
+      adjustPressure(1);
+    }
+
+    function decisiveCost() {
+      const table = [
+        { text: '局面更糟：再吃一个沉重代价。', fn: () => adjustMomentum(-2) },
+        { text: '短暂胜利：新的麻烦出现。', fn: () => adjustPressure(1) },
+        { text: '附带损失：场面被破坏。', fn: () => adjustHealth(-1) },
+        { text: '旁人受累：环境进一步失控。', fn: () => adjustPressure(1) },
+        { text: '被记住了：后续压力上升。', fn: () => adjustPressure(2) },
+        { text: '真相浮现：敌人动作更危险。', fn: () => { adjustPressure(1); state.position = 'bad'; } }
+      ];
+      return table[Math.floor(Math.random() * table.length)];
+    }
+
+    function applyDecisiveCost(cost) {
+      if (!cost) return;
+      cost.fn();
+    }
+
+    function progressOutcome(score, c1, c2) {
+      if (score > c1 && score > c2) return 'strong';
+      if (score > c1 || score > c2) return 'weak';
+      return 'miss';
+    }
+
+    function rollAction(statKey) {
+      const bonus = state.nextBonus || 0;
+      state.nextBonus = 0;
+      const stat = state.stats[statKey] ?? 0;
+      const action = rollDie(6) + stat + bonus;
+      const c1 = rollDie(10);
+      const c2 = rollDie(10);
+      const result = action > c1 && action > c2 ? 'strong' : (action > c1 || action > c2 ? 'weak' : 'miss');
+      const label = `${statKey} ${action} vs ${c1}/${c2}${bonus ? `, +${bonus}` : ''}`;
+      state.rollText = label;
+      return { action, c1, c2, result, label, display: `d6+${stat}${bonus ? `+${bonus}` : ''} = ${action} | d10 ${c1}/${c2}` };
+    }
+
+    function markProgress(amount) {
+      state.progress = clampInt(state.progress + amount, 0, 10);
+    }
+
+    function adjustMomentum(delta) {
+      state.momentum = clampInt(state.momentum + delta, -6, 10);
+    }
+
+    function adjustHealth(delta) {
+      state.health = clampInt(state.health + delta, 0, 5);
+      if (state.health === 0) {
+        state.defeated = true;
+      }
+    }
+
+    function adjustPressure(delta) {
+      state.pressure = clampInt(state.pressure + delta, 0, 6);
+    }
+
+    function banner(type, title, text) {
+      els.resultBanner.className = `result-banner ${type || ''}`.trim();
+      els.resultBanner.innerHTML = `<div class="title">${title}</div><div class="text">${text}</div>`;
+    }
+
+    function addLog(title, text, tone = 'neutral', keep = false) {
+      if (!keep) {
+        state.log.unshift({
+          title,
+          text,
+          tone,
+          turn: state.turn || 1,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        });
+        state.log = state.log.slice(0, 18);
+      } else {
+        state.log.unshift({
+          title,
+          text,
+          tone,
+          turn: state.turn || 1,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        });
+      }
+    }
+
+    function openChoice(choice) {
+      choiceState = {
+        ...choice,
+        selected: []
+      };
+      els.choiceTitle.textContent = choice.title;
+      els.choicePrompt.textContent = choice.prompt;
+      els.choiceCount.textContent = `0 / ${choice.min}`;
+      renderChoiceOptions();
+      els.choiceDrawer.classList.add('open');
+      updateChoiceConfirm();
+    }
+
+    function closeChoice(clear = true) {
+      if (clear) choiceState = null;
+      els.choiceDrawer.classList.remove('open');
+      els.choiceGrid.innerHTML = '';
+    }
+
+    function renderChoiceOptions() {
+      els.choiceGrid.innerHTML = '';
+      if (!choiceState) return;
+      choiceState.options.forEach(option => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'choice-option';
+        btn.dataset.id = option.id;
+        btn.innerHTML = `<span class="title">${option.title}</span><span class="desc">${option.desc}</span>`;
+        btn.addEventListener('click', () => {
+          const idx = choiceState.selected.indexOf(option.id);
+          if (idx >= 0) {
+            choiceState.selected.splice(idx, 1);
+          } else if (choiceState.selected.length < choiceState.max) {
+            choiceState.selected.push(option.id);
+          } else {
+            choiceState.selected.shift();
+            choiceState.selected.push(option.id);
+          }
+          renderChoiceOptions();
+          updateChoiceConfirm();
+        });
+        if (choiceState.selected.includes(option.id)) btn.classList.add('selected');
+        els.choiceGrid.appendChild(btn);
+      });
+      els.choiceCount.textContent = `${choiceState.selected.length} / ${choiceState.min}`;
+    }
+
+    function updateChoiceConfirm() {
+      const ok = choiceState && choiceState.selected.length >= choiceState.min;
+      els.choiceConfirm.disabled = !ok;
+    }
+
+    function confirmChoice() {
+      if (!choiceState) return;
+      const selected = choiceState.selected.slice(0, choiceState.max);
+      choiceState.apply(selected);
+      closeChoice();
+      saveInputs();
+      render();
+    }
+
+    function renderIcons() {
+      els.enterIcon.innerHTML = icons.enter;
+      els.resetIcon.innerHTML = icons.reset;
+      els.gainIcon.innerHTML = icons.gain;
+      els.reactIcon.innerHTML = icons.react;
+      els.strikeIcon.innerHTML = icons.strike;
+      els.clashIcon.innerHTML = icons.clash;
+      els.decisiveIcon.innerHTML = icons.decisive;
+      els.battleIcon.innerHTML = icons.battle;
+      els.defeatIcon.innerHTML = icons.defeat;
+    }
+
+    function render() {
+      syncSegmented(els.rangeToggle, state.range);
+      syncSegmented(els.modeToggle, state.mode);
+      syncStatusInputs();
+      renderHeader();
+      renderScene();
+      renderTrack();
+      renderMeters();
+      renderLog();
+      renderMoveState();
+      updateMoveLabels();
+      renderChoiceState();
+      saveInputs();
+    }
+
+    function renderHeader() {
+      els.turnLabel.textContent = `回合 ${state.turn}`;
+      els.stateLabel.textContent = state.complete ? '目标完成' : state.defeated ? '目标失守' : state.started ? '战斗中' : '未开战';
+      els.headerStats.innerHTML = [
+        chip(`位置`, state.position || '待定'),
+        chip(`目标`, state.objective),
+        chip(`敌人`, state.enemy),
+        chip(`难度`, RANKS[state.rank].label),
+        chip(`距离`, state.range === 'close' ? '近战' : '远程'),
+        chip(`模式`, state.mode === 'detailed' ? '详细' : '快切')
+      ].join('');
+    }
+
+    function chip(label, value) {
+      return `<span class="chip"><strong>${label}</strong><span>${escapeHtml(value)}</span></span>`;
+    }
+
+    function renderScene() {
+      const rankInfo = RANKS[state.rank];
+      els.sceneBadgeLeft.textContent = state.started
+        ? `${state.position === 'control' ? '控制中' : state.position === 'bad' ? '坏位置' : '等待判定'}`
+        : '未进入战斗';
+      els.sceneBadgeRight.textContent = `目标线 ${rankInfo.target} / 10`;
+      els.rankLabel.textContent = rankInfo.label;
+      els.progressText.textContent = `${state.progress} / 10`;
+      els.objectiveCaption.textContent = `目标：${state.objective}`;
+      els.targetCaption.textContent = `进度线在 ${rankInfo.target} 时就适合直接结算`;
+      els.sceneNotes.textContent = sceneText();
+      const playerSide = state.position === 'bad' ? 'left' : 'left';
+      const enemySide = state.range === 'close' ? 'center' : 'right';
+      const objectiveSide = state.progress >= rankInfo.target ? 'center' : 'center';
+      els.playerToken.style.transform = state.range === 'close' ? 'translateX(-10px)' : 'translateX(-28px)';
+      els.enemyToken.style.transform = state.range === 'close' ? 'translateX(10px)' : 'translateX(28px)';
+      els.objectiveToken.style.transform = state.started ? 'scale(1)' : 'scale(.92)';
+      els.playerToken.classList.toggle('active', state.position === 'control');
+      els.enemyToken.classList.toggle('active', state.position === 'bad');
+      els.objectiveToken.classList.toggle('active', state.progress >= rankInfo.target);
+      els.playerMark.textContent = state.position === 'control' ? 'P*' : 'P';
+      els.enemyMark.textContent = state.range === 'close' ? 'E!' : 'E';
+      els.objectiveMark.textContent = state.progress >= rankInfo.target ? 'GO' : 'O';
+      void playerSide; void enemySide; void objectiveSide;
+    }
+
+    function sceneText() {
+      if (!state.started) return '先设置好目标、敌人和战术，然后点击 Enter the Fray。';
+      if (state.complete) return '目标已经完成。你可以重置，或者改写目标再起一场。';
+      if (state.defeated) return '当前目标已经失手。调整方案后再开一局。';
+      if (state.mode === 'blur') return '快切模式下，战斗会更像一段迅速收束的混战。';
+      if (state.position === 'control') return '你在主动推进，适合继续 Gain Ground 或 Strike。';
+      if (state.position === 'bad') return '你正在应对压力，适合 React Under Fire 或 Clash。';
+      return '等待 Enter the Fray 的结果来决定起手节奏。';
+    }
+
+    function renderTrack() {
+      els.progressTrack.innerHTML = '';
+      const target = RANKS[state.rank].target;
+      for (let i = 1; i <= 10; i++) {
+        const box = document.createElement('span');
+        box.className = 'track-box';
+        if (i <= state.progress) box.classList.add('filled');
+        if (i === target) box.classList.add('target');
+        els.progressTrack.appendChild(box);
+      }
+    }
+
+    function renderMeters() {
+      els.positionText.textContent = state.position ? (state.position === 'control' ? '控制中' : '坏位置') : '待定';
+      els.statText.textContent = state.tactic;
+      els.bonusText.textContent = `+${state.nextBonus}`;
+      els.rollText.textContent = state.rollText || '--';
+      els.momentumText.textContent = `${state.momentum} / 10`;
+      els.healthText.textContent = `${state.health} / 5`;
+      els.pressureText.textContent = `${state.pressure} / 6`;
+      els.momentumBar.style.width = `${Math.max(0, Math.min(100, (state.momentum + 6) / 16 * 100))}%`;
+      els.healthBar.style.width = `${Math.max(0, Math.min(100, state.health / 5 * 100))}%`;
+      els.pressureBar.style.width = `${Math.max(0, Math.min(100, state.pressure / 6 * 100))}%`;
+    }
+
+    function renderLog() {
+      if (!state.log.length) {
+        els.log.innerHTML = '<div class="log-item"><div class="headline">日志会在这里显示</div><div class="meta"><span>每次行动后都会留下记录。</span><span>0</span></div></div>';
+        return;
+      }
+      els.log.innerHTML = state.log.map(item => `
+        <article class="log-item ${item.tone}">
+          <div class="meta"><span>${escapeHtml(item.time)} · 回合 ${item.turn}</span><span>${escapeHtml(item.title)}</span></div>
+          <div class="headline">${escapeHtml(item.text)}</div>
+        </article>
+      `).join('');
+    }
+
+    function renderMoveState() {
+      const canAct = state.started && !state.complete && !state.defeated && !choiceState;
+      els.gainBtn.disabled = !canAct || state.position !== 'control';
+      els.reactBtn.disabled = !canAct || state.position !== 'bad';
+      els.strikeBtn.disabled = !canAct || state.position !== 'control';
+      els.clashBtn.disabled = !canAct || state.position !== 'bad';
+      els.decisiveBtn.disabled = !canAct && !(state.complete || state.defeated);
+      els.battleBtn.disabled = !canAct && !(state.complete || state.defeated);
+      els.defeatBtn.disabled = !state.started || choiceState;
+      els.enterBtn.disabled = !!choiceState;
+      els.moveHint.textContent = state.complete ? '目标已完成' : state.defeated ? '当前目标失手' : choiceState ? '先处理选择' : state.started ? '选择当前可用动作' : '先开局';
+    }
+
+    function updateMoveLabels() {
+      els.strikeHint.textContent = state.range === 'close' ? '近战：iron' : '远程：edge';
+      els.clashHint.textContent = state.range === 'close' ? '近战：iron' : '远程：edge';
+    }
+
+    function renderChoiceState() {
+      if (choiceState) {
+        els.choiceDrawer.classList.add('open');
+      } else {
+        els.choiceDrawer.classList.remove('open');
+      }
+    }
+
+    function syncSegmented(container, value) {
+      [...container.querySelectorAll('button')].forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.value === value);
+      });
+    }
+
+    function syncStatusInputs() {
+      els.objectiveInput.value = state.objective;
+      els.enemyInput.value = state.enemy;
+      els.rankSelect.value = state.rank;
+      els.approachSelect.value = state.approach;
+      els.tacticSelect.value = state.tactic;
+      els.edgeStat.value = state.stats.edge;
+      els.heartStat.value = state.stats.heart;
+      els.ironStat.value = state.stats.iron;
+      els.shadowStat.value = state.stats.shadow;
+      els.witsStat.value = state.stats.wits;
+    }
+
+    function clampInt(value, min, max, fallback) {
+      const n = Number.parseInt(value, 10);
+      if (Number.isNaN(n)) return fallback;
+      return Math.min(max, Math.max(min, n));
+    }
+
+    function rollDie(sides) {
+      return Math.floor(Math.random() * sides) + 1;
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+  </script>
+</body>
+</html>
