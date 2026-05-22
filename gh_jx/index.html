@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>幽港风角色技能卡生成器</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="editor-panel" aria-label="JSON 数据编辑器">
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">JSON TO CARD SHEET</p>
+            <h1>角色技能卡生成器</h1>
+          </div>
+          <span class="status-dot" id="statusDot" aria-hidden="true"></span>
+        </div>
+
+        <textarea id="jsonInput" spellcheck="false" aria-label="输入 JSON 数据"></textarea>
+
+        <div class="toolbar" aria-label="操作">
+          <button id="renderBtn" type="button">生成预览</button>
+          <button id="downloadBtn" type="button">导出 PNG</button>
+          <button id="resetBtn" type="button">恢复示例</button>
+        </div>
+
+        <p id="message" class="message" role="status">修改 JSON 后点击生成预览。</p>
+      </section>
+
+      <section class="preview-panel" aria-label="生成结果">
+        <div class="preview-frame">
+          <canvas id="cardCanvas" width="1420" height="1900"></canvas>
+        </div>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
