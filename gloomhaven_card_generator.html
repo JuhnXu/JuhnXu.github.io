@@ -5,131 +5,350 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>幽港风行动卡生成器</title>
 <style>
+:root{
+    --bg:#11100d;
+    --panel:#171714;
+    --panel-2:#222018;
+    --ink:#e9e0c8;
+    --muted:#b3ab98;
+    --gold:#b9a66a;
+    --gold-light:#efe0a2;
+    --line:#7d7046;
+    --card-black:#141412;
+    --card-deep:#0d0d0c;
+    --red:#9c2727;
+    --green:#4aa183;
+}
+*{box-sizing:border-box}
 body{
-    font-family: Arial, sans-serif;
-    background:#1c1b22;
-    color:white;
+    font-family:"Noto Serif SC","Songti SC","STSong","SimSun",Georgia,serif;
+    min-height:100vh;
+    background:
+        radial-gradient(circle at 20% 8%, rgba(147,83,38,.28), transparent 34%),
+        radial-gradient(circle at 84% 18%, rgba(99,22,22,.24), transparent 30%),
+        linear-gradient(135deg,#0c0b09 0%,#1b1710 52%,#080807 100%);
+    color:var(--ink);
     margin:0;
-    padding:20px;
+    padding:28px;
+}
+body:before{
+    content:"";
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    opacity:.32;
+    background-image:
+        linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px),
+        linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px);
+    background-size:34px 34px,34px 34px;
+    mix-blend-mode:screen;
+}
+h1{
+    margin:0 0 20px;
+    font-size:34px;
+    letter-spacing:.16em;
+    text-shadow:0 2px 0 #000,0 0 18px rgba(239,224,162,.18);
 }
 .container{
-    display:flex;
-    gap:20px;
-    flex-wrap:wrap;
+    display:grid;
+    grid-template-columns:minmax(340px, 420px) 1fr;
+    gap:26px;
+    align-items:start;
 }
 .panel{
-    flex:1;
-    min-width:320px;
+    min-width:0;
+    background:linear-gradient(180deg,rgba(42,39,31,.92),rgba(21,20,16,.94));
+    border:1px solid rgba(185,166,106,.46);
+    border-radius:18px;
+    padding:18px;
+    box-shadow:0 18px 48px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.04);
+}
+h2{
+    margin:0 0 12px;
+    color:#f2e7c8;
+    font-size:18px;
+    letter-spacing:.12em;
 }
 textarea{
     width:100%;
-    height:500px;
-    background:#101014;
-    color:#e6e6e6;
-    border:1px solid #444;
-    padding:10px;
+    height:520px;
+    resize:vertical;
+    background:linear-gradient(180deg,#0f0f0e,#171611);
+    color:#e8ddc2;
+    border:1px solid rgba(185,166,106,.58);
+    padding:14px;
     font-size:14px;
-    border-radius:8px;
+    line-height:1.55;
+    border-radius:12px;
+    outline:none;
+    box-shadow:inset 0 3px 18px rgba(0,0,0,.55);
+    font-family:"JetBrains Mono","Consolas",monospace;
+}
+textarea:focus{
+    border-color:var(--gold-light);
+    box-shadow:0 0 0 3px rgba(239,224,162,.08), inset 0 3px 18px rgba(0,0,0,.55);
 }
 button{
-    margin-top:10px;
+    margin:12px 10px 0 0;
     padding:12px 18px;
-    border:none;
-    border-radius:8px;
-    background:#7856ff;
-    color:white;
-    font-size:16px;
+    border:1px solid rgba(239,224,162,.55);
+    border-radius:999px;
+    background:linear-gradient(180deg,#d2bd73,#7e6b38 54%,#4a3e20);
+    color:#15130e;
+    font-size:15px;
+    font-weight:800;
     cursor:pointer;
+    box-shadow:0 7px 18px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.42);
+    transition:transform .15s ease, filter .15s ease;
 }
+button:hover{transform:translateY(-1px);filter:brightness(1.08)}
 .preview{
     display:flex;
     flex-wrap:wrap;
-    gap:20px;
+    gap:26px;
+    align-items:flex-start;
 }
-
 .card{
     width:320px;
     height:500px;
-    background:#efe7d2;
-    color:#111;
-    border-radius:16px;
-    overflow:hidden;
-    box-shadow:0 8px 20px rgba(0,0,0,0.5);
-    border:4px solid #3d314f;
     position:relative;
+    overflow:hidden;
+    color:#d9d5c9;
+    border-radius:11px;
+    background:#111;
+    border:7px solid #25241e;
+    box-shadow:
+        0 18px 36px rgba(0,0,0,.62),
+        0 0 0 1px #000,
+        inset 0 0 0 1px rgba(255,255,255,.05);
 }
-
+.card:before{
+    content:"";
+    position:absolute;
+    inset:6px;
+    border:1px solid rgba(185,166,106,.54);
+    pointer-events:none;
+    z-index:4;
+    clip-path:polygon(0 8px,8px 0,calc(100% - 8px) 0,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0 calc(100% - 8px));
+}
+.card:after{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:
+        radial-gradient(circle at 50% 25%, rgba(255,255,255,.04), transparent 25%),
+        repeating-linear-gradient(115deg, transparent 0 10px, rgba(255,255,255,.018) 10px 12px);
+    opacity:.62;
+    pointer-events:none;
+    z-index:5;
+}
+.art-band{
+    height:82px;
+    position:relative;
+    border-bottom:2px solid #080807;
+    background:
+        radial-gradient(circle at 18% 22%, rgba(238,214,170,.95) 0 8px, transparent 9px),
+        linear-gradient(115deg,rgba(97,42,31,.92),rgba(206,132,69,.9) 42%,rgba(73,49,31,.96) 43%,rgba(30,27,21,.96) 100%);
+}
+.art-band:before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:
+        linear-gradient(8deg, transparent 48%, rgba(24,18,14,.82) 49% 56%, transparent 57%),
+        linear-gradient(-12deg, transparent 42%, rgba(33,26,22,.82) 43% 51%, transparent 52%),
+        radial-gradient(ellipse at 12% 55%, rgba(190,196,207,.95) 0 20px, transparent 22px);
+    opacity:.78;
+}
+.level{
+    position:absolute;
+    right:10px;
+    bottom:4px;
+    z-index:2;
+    color:#e4d289;
+    font-size:11px;
+    font-weight:900;
+    background:rgba(28,27,20,.82);
+    padding:1px 6px;
+    border-radius:10px;
+}
 .header{
-    background:#2d2340;
-    color:white;
-    padding:14px;
+    height:42px;
     display:flex;
-    justify-content:space-between;
     align-items:center;
+    justify-content:center;
+    padding:0 16px;
+    color:#eee7d7;
+    background:linear-gradient(180deg,#26251f,#13130f);
+    border-top:1px solid rgba(255,255,255,.08);
+    border-bottom:1px solid rgba(185,166,106,.7);
+    text-align:center;
 }
-
 .title{
-    font-size:24px;
-    font-weight:bold;
+    font-size:23px;
+    font-weight:900;
+    letter-spacing:.16em;
+    line-height:1;
+    text-shadow:0 2px 0 #000,0 0 8px rgba(255,255,255,.18);
+    white-space:nowrap;
+    max-width:100%;
+    overflow:hidden;
+    text-overflow:ellipsis;
 }
-
-.initiative{
-    font-size:32px;
-    font-weight:bold;
-    color:#ffd85b;
-}
-
 .section{
-    padding:14px;
+    position:relative;
+    height:148px;
+    margin:0 11px;
+    padding:22px 18px 14px;
+    background:linear-gradient(180deg,#171716,#0d0d0c);
+    border-left:1px solid rgba(185,166,106,.65);
+    border-right:1px solid rgba(185,166,106,.65);
 }
-
 .top{
-    height:185px;
-    border-bottom:3px solid #3d314f;
+    border-top:1px solid rgba(185,166,106,.72);
 }
-
 .bottom{
-    height:185px;
+    border-bottom:1px solid rgba(185,166,106,.72);
 }
-
 .section h3{
-    margin-top:0;
-    margin-bottom:8px;
-    color:#2d2340;
+    position:absolute;
+    left:50%;
+    top:7px;
+    transform:translateX(-50%);
+    margin:0;
+    color:rgba(239,224,162,.48);
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:.24em;
 }
-
 .effect{
-    margin-bottom:6px;
-    line-height:1.4;
+    min-height:26px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    margin:4px 0;
+    color:#bdbbb5;
+    font-family:"Noto Sans SC","Microsoft YaHei",Arial,sans-serif;
+    font-size:17px;
+    font-weight:800;
+    text-align:center;
+    line-height:1.35;
+    text-shadow:0 1px 0 #000;
 }
-
+.effect:not(:last-child):after{
+    content:"";
+    position:absolute;
+    width:70px;
+    height:1px;
+    margin-top:31px;
+    background:linear-gradient(90deg,transparent,rgba(185,166,106,.26),transparent);
+}
+.icon{
+    width:27px;
+    height:27px;
+    display:inline-grid;
+    place-items:center;
+    flex:0 0 27px;
+    color:#c9c6bd;
+    font-size:18px;
+    filter:drop-shadow(0 1px 0 #000);
+}
+.icon.attack{clip-path:polygon(46% 0,58% 30%,100% 20%,67% 49%,91% 84%,55% 62%,43% 100%,34% 63%,0 78%,27% 48%,7% 19%,39% 31%);background:#bab7ad;color:#111;font-size:0}
+.icon.move:before{content:"♞";font-size:24px;color:#c9c6bd}
+.icon.heal:before{content:"✦";font-size:22px;color:#68c6a5}
+.icon.range:before{content:"◇";font-size:22px;color:#c9c6bd}
+.icon.shield:before{content:"⬟";font-size:21px;color:#93c7b3}
+.icon.status:before{content:"◆";font-size:19px;color:#b65d5d}
+.icon.dark:before{content:"◈";font-size:21px;color:#8a83a8}
+.icon.default:before{content:"•";font-size:22px;color:#c9c6bd}
 .loss{
-    color:#a50000;
-    font-weight:bold;
+    color:#df4c45;
+    font-weight:900;
 }
-
+.loss .icon:before{content:"✖";color:#9c2727;font-size:22px}
+.divider{
+    height:48px;
+    margin:0 11px;
+    position:relative;
+    display:grid;
+    grid-template-columns:1fr 92px 1fr;
+    align-items:center;
+    background:linear-gradient(180deg,#28251b,#161510);
+    border-top:2px solid rgba(185,166,106,.8);
+    border-bottom:2px solid rgba(185,166,106,.8);
+}
+.divider:before,.divider:after{
+    content:"";
+    height:100%;
+    border-top:1px solid rgba(239,224,162,.5);
+    border-bottom:1px solid rgba(239,224,162,.5);
+    transform:skewX(-28deg);
+}
+.small-stat{
+    color:#aaa79e;
+    font-size:18px;
+    font-weight:900;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:7px;
+}
+.initiative{
+    position:relative;
+    z-index:2;
+    width:72px;
+    height:36px;
+    margin:auto;
+    display:grid;
+    place-items:center;
+    color:#244133;
+    font-size:25px;
+    font-weight:1000;
+    font-family:Georgia,serif;
+    background:radial-gradient(circle,#fbf0ad 0 48%,#c4a75e 60%,#5d4a22 100%);
+    clip-path:polygon(18% 0,82% 0,100% 50%,82% 100%,18% 100%,0 50%);
+    box-shadow:0 0 12px rgba(239,224,162,.32), inset 0 0 0 2px rgba(44,36,18,.55);
+}
 .tags{
     position:absolute;
+    left:18px;
+    right:18px;
     bottom:10px;
-    right:12px;
-    font-size:12px;
-    color:#555;
+    z-index:6;
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:center;
+    gap:6px;
 }
-
+.tag{
+    max-width:118px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    color:#d8cca2;
+    border:1px solid rgba(185,166,106,.5);
+    background:rgba(17,17,15,.72);
+    border-radius:999px;
+    padding:2px 7px;
+    font-size:11px;
+    font-family:"Noto Sans SC","Microsoft YaHei",Arial,sans-serif;
+}
+@media (max-width:900px){
+    body{padding:18px}
+    .container{grid-template-columns:1fr}
+    .panel{padding:14px}
+    .preview{justify-content:center}
+}
 @media print{
-    body{
-        background:white;
-    }
-    .panel{
-        display:none;
-    }
-    .preview{
-        gap:0;
-    }
-    .card{
-        page-break-inside:avoid;
-        margin:8px;
-    }
+    @page{size:auto;margin:8mm}
+    body{background:white;padding:0}
+    body:before,.panel:first-of-type,h1{display:none}
+    .container{display:block}
+    .panel{box-shadow:none;border:none;background:white;padding:0}
+    .panel h2{display:none}
+    .preview{gap:4mm;justify-content:flex-start}
+    .card{page-break-inside:avoid;break-inside:avoid;margin:0;box-shadow:none}
 }
 </style>
 </head>
@@ -202,11 +421,41 @@ button{
 </div>
 
 <script>
+function escapeHTML(value){
+    return String(value ?? "").replace(/[&<>'"]/g, char => ({
+        "&":"&amp;", "<":"&lt;", ">":"&gt;", "'":"&#39;", '"':"&quot;"
+    }[char]));
+}
+
+function getIconClass(effect){
+    const text = String(effect).toUpperCase();
+    if(text.includes("LOSS")) return "loss";
+    if(/攻击|ATTACK/.test(effect)) return "attack";
+    if(/移动|MOVE/.test(effect)) return "move";
+    if(/治疗|HEAL/.test(effect)) return "heal";
+    if(/范围|RANGE/.test(effect)) return "range";
+    if(/护盾|SHIELD/.test(effect)) return "shield";
+    if(/黑暗|暗影|DARK/.test(effect)) return "dark";
+    if(/虚弱|诅咒|中毒|伤害|眩晕|定身|混乱|STATUS|CURSE|WOUND|POISON/.test(effect)) return "status";
+    return "default";
+}
+
+function beautifyEffect(effect){
+    return escapeHTML(effect)
+        .replace(/(攻击|移动|治疗|范围|护盾)\s*(\d+)/g, "$1 <strong>$2</strong>")
+        .replace(/(Attack|Move|Heal|Range|Shield)\s*(\d+)/gi, "$1 <strong>$2</strong>");
+}
+
 function createEffectHTML(effect){
-    if(effect.toUpperCase().includes("LOSS")){
-        return `<div class="effect loss">${effect}</div>`;
-    }
-    return `<div class="effect">${effect}</div>`;
+    const iconClass = getIconClass(effect);
+    const lossClass = iconClass === "loss" ? " loss" : "";
+    const label = iconClass === "loss" ? "损耗" : beautifyEffect(effect);
+    return `<div class="effect${lossClass}"><span class="icon ${iconClass}"></span><span>${label}</span></div>`;
+}
+
+function statValue(effects, reg){
+    const found = (effects || []).map(String).join(" ").match(reg);
+    return found ? found[1] : "2";
 }
 
 function generateCards(){
@@ -218,41 +467,44 @@ function generateCards(){
     try{
         cards = JSON.parse(document.getElementById("jsonInput").value);
     }catch(e){
-        alert("JSON 格式错误");
+        alert("JSON 格式错误：" + e.message);
         return;
     }
 
     cards.forEach(card => {
-
-        const topEffects = card.top.effects.map(createEffectHTML).join("");
-        const bottomEffects = card.bottom.effects.map(createEffectHTML).join("");
-
-        const tags = (card.tags || []).join(" · ");
+        const topEffectsArr = card.top?.effects || [];
+        const bottomEffectsArr = card.bottom?.effects || [];
+        const topEffects = topEffectsArr.map(createEffectHTML).join("");
+        const bottomEffects = bottomEffectsArr.map(createEffectHTML).join("");
+        const attackValue = statValue(topEffectsArr, /(?:攻击|Attack)\s*(\d+)/i);
+        const moveValue = statValue(bottomEffectsArr, /(?:移动|Move)\s*(\d+)/i);
+        const tags = (card.tags || []).map(tag => `<span class="tag">${escapeHTML(tag)}</span>`).join("");
 
         const html = `
         <div class="card">
-
-            <div class="header">
-                <div class="title">${card.name}</div>
-                <div class="initiative">${card.initiative}</div>
-            </div>
+            <div class="art-band"><span class="level">等级 1</span></div>
+            <div class="header"><div class="title">${escapeHTML(card.name)}</div></div>
 
             <div class="section top">
-                <h3>${card.top.title}</h3>
+                <h3>${escapeHTML(card.top?.title || "上半")}</h3>
                 ${topEffects}
             </div>
 
+            <div class="divider">
+                <div class="small-stat"><span class="icon attack"></span>${attackValue}</div>
+                <div class="initiative">${escapeHTML(card.initiative)}</div>
+                <div class="small-stat"><span class="icon move"></span>${moveValue}</div>
+            </div>
+
             <div class="section bottom">
-                <h3>${card.bottom.title}</h3>
+                <h3>${escapeHTML(card.bottom?.title || "下半")}</h3>
                 ${bottomEffects}
             </div>
 
             <div class="tags">${tags}</div>
+        </div>`;
 
-        </div>
-        `;
-
-        preview.innerHTML += html;
+        preview.insertAdjacentHTML("beforeend", html);
     });
 }
 
