@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>卡文笛许在线拼音输入法</title>
+  <link rel="stylesheet" type="text/css" href="./simple-input-method.css">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 24px;
+      font-family: Arial, "Microsoft YaHei", sans-serif;
+      color: #222;
+      background: #f5f7fb;
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      text-align: center;
+      font-size: 28px;
+    }
+
+    .intro {
+      margin: 0 0 20px;
+      text-align: center;
+      color: #666;
+      line-height: 1.7;
+    }
+
+    .editor-card {
+      padding: 18px;
+      border-radius: 12px;
+      background: #fff;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 280px;
+      padding: 14px;
+      border: 1px solid #cfd7e6;
+      border-radius: 8px;
+      font-size: 18px;
+      line-height: 1.7;
+      resize: vertical;
+      outline: none;
+      background: #fff;
+    }
+
+    textarea:focus {
+      border-color: #4088ff;
+      box-shadow: 0 0 0 3px rgba(64, 136, 255, 0.16);
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 10px 18px;
+      border: 0;
+      border-radius: 8px;
+      color: #fff;
+      background: #276ef1;
+      font-size: 15px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #1558ca;
+    }
+
+    .status {
+      color: #17803a;
+      font-size: 14px;
+    }
+
+    .tips {
+      margin-top: 18px;
+      padding: 14px 18px;
+      border-radius: 10px;
+      background: #fff;
+      color: #555;
+      line-height: 1.8;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+    }
+
+    .footer {
+      margin-top: 20px;
+      text-align: center;
+      color: #888;
+      font-size: 13px;
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 14px;
+      }
+
+      h1 {
+        font-size: 22px;
+      }
+
+      textarea {
+        min-height: 220px;
+        font-size: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>卡文笛许在线拼音输入法</h1>
+  <p class="intro">直接在输入框中输入拼音，按数字或空格选择候选字。不需要安装输入法，打开网页即可使用。</p>
+
+  <main class="editor-card">
+    <textarea class="test-input-method" id="kw" placeholder="在这里输入拼音，例如 nihao，然后按空格或数字选择候选字。"></textarea>
+
+    <div class="toolbar">
+      <button type="button" id="copyButton">复制文本</button>
+      <span class="status" id="statusText">输入法已加载</span>
+    </div>
+  </main>
+
+  <section class="tips">
+    <strong>使用说明：</strong>
+    <span>输入 a-z 进入拼音模式；空格选择第一个候选字；数字选择对应候选字；PageUp/PageDown 或上下方向键翻页；Esc 取消当前拼音。</span>
+  </section>
+
+  <p class="footer">By 卡文笛许红骏 @ 2024.06.15</p>
+
+  <script src="./ipy.js"></script>
+  <script src="./pinyinUtil.js"></script>
+  <script src="./simple-input-method.js"></script>
+  <script>
+    SimpleInputMethod.init('.test-input-method');
+
+    document.getElementById('copyButton').addEventListener('click', async function () {
+      var textarea = document.getElementById('kw');
+      var status = document.getElementById('statusText');
+
+      try {
+        await navigator.clipboard.writeText(textarea.value);
+        status.textContent = '已复制到剪贴板';
+      } catch (error) {
+        textarea.select();
+        var ok = document.execCommand('copy');
+        status.textContent = ok ? '已复制到剪贴板' : '复制失败，请手动复制';
+      }
+    });
+  </script>
+</body>
+</html>

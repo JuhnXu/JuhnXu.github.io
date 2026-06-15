@@ -1,0 +1,75 @@
+.simple-input-method {
+    position: absolute;
+    z-index: 9999;
+    display: none;
+    min-width: 260px;
+    border: 1px solid #b5c5d2;
+    border-radius: 8px;
+    color: #0364cd;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+    font-family: Arial, "Microsoft YaHei", sans-serif;
+    overflow: hidden;
+}
+
+.simple-input-method .pinyin {
+    min-height: 30px;
+    padding: 6px 10px;
+    border-bottom: 1px solid #d8e1ed;
+    color: #333;
+    font-weight: bold;
+    background: #f5f8ff;
+}
+
+.simple-input-method .result {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+}
+
+.simple-input-method .result ol {
+    display: flex;
+    flex: 1;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.simple-input-method .result ol li {
+    cursor: pointer;
+    white-space: nowrap;
+    font-size: 18px;
+}
+
+.simple-input-method .result ol li:first-child {
+    color: #d80000;
+}
+
+.simple-input-method .idx {
+    margin-right: 2px;
+    color: #888;
+    font-size: 12px;
+}
+
+.simple-input-method .page-up-down {
+    display: inline-flex;
+    flex-shrink: 0;
+    border: 1px solid #badbff;
+    border-radius: 4px;
+    color: #4c9aef;
+    font-size: 12px;
+    overflow: hidden;
+}
+
+.simple-input-method .page-up-down .page-down {
+    border-left: 1px solid #badbff;
+}
+
+.simple-input-method .page-up-down span {
+    padding: 2px 5px;
+    cursor: pointer;
+    user-select: none;
+}
