@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>图片目录生成 Markdown</title>
+<style>
+:root {
+    --bg: #111827;
+    --panel: #1f2937;
+    --panel2: #0f172a;
+    --text: #e5e7eb;
+    --muted: #9ca3af;
+    --accent: #60a5fa;
+    --accent2: #2563eb;
+    --border: #374151;
+    --danger: #f87171;
+}
+* { box-sizing: border-box; }
+body {
+    margin: 0;
+    padding: 24px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+h1 { margin: 0 0 10px; font-size: 26px; }
+p { color: var(--muted); line-height: 1.7; }
+.container {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 18px;
+    align-items: start;
+}
+.card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.25);
+}
+.row { margin-bottom: 14px; }
+label { display: block; margin-bottom: 8px; font-weight: 600; }
+input[type="text"],
+input[type="number"],
+select {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--panel2);
+    color: var(--text);
+}
+input[type="file"] {
+    width: 100%;
+    padding: 12px;
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    background: var(--panel2);
+    color: var(--muted);
+}
+.check {
+    display: flex;
+    gap: 9px;
+    align-items: flex-start;
+    font-weight: 400;
+    color: var(--text);
+}
+.check input { margin-top: 4px; }
+button {
+    appearance: none;
+    border: 0;
+    border-radius: 10px;
+    padding: 11px 14px;
+    color: white;
+    background: var(--accent2);
+    cursor: pointer;
+    font-weight: 700;
+    margin-right: 8px;
+    margin-bottom: 8px;
+}
+button.secondary { background: #374151; }
+button:hover { filter: brightness(1.08); }
+textarea {
+    width: 100%;
+    min-height: 72vh;
+    resize: vertical;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: #020617;
+    color: #d1d5db;
+    padding: 14px;
+    line-height: 1.55;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 13px;
+}
+.info {
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: #0f172a;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 13px;
+}
+.file-list {
+    max-height: 230px;
+    overflow: auto;
+    background: #020617;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px;
+    font-size: 12px;
+    color: var(--muted);
+}
+.file-list div {
+    padding: 4px 2px;
+    border-bottom: 1px solid rgba(255,255,255,.05);
+}
+.file-list div:last-child { border-bottom: 0; }
+.warn { color: var(--danger); }
+small { color: var(--muted); }
+@media (max-width: 900px) {
+    body { padding: 14px; }
+    .container { grid-template-columns: 1fr; }
+    textarea { min-height: 52vh; }
+}
+</style>
+</head>
+<body>
+<h1>图片文件夹 → Markdown 目录生成器</h1>
+<p>
+选择一个图片文件夹，自动生成 Markdown：每张图片一个一级标题，图片名作为目录/书签标题，每张图片后插入分页。
+生成的 .md 可以用 Pandoc 转 PDF，并生成 PDF 左侧书签。
+</p>
+
+<div class="container">
+    <div class="card">
+        <div class="row">
+            <label for="dirInput">选择图片文件夹</label>
+            <input id="dirInput" type="file" webkitdirectory directory multiple />
+            <small>纯前端读取，不上传文件。</small>
+        </div>
+
+        <div class="row">
+            <label for="outputName">下载文件名</label>
+            <input id="outputName" type="text" value="images_book.md" />
+        </div>
+
+        <div class="row">
+            <label for="titleText">文档标题</label>
+            <input id="titleText" type="text" value="图片目录" />
+        </div>
+
+        <div class="row">
+            <label for="imageWidth">图片宽度</label>
+            <select id="imageWidth">
+                <option value="100%" selected>100%</option>
+                <option value="95%">95%</option>
+                <option value="90%">90%</option>
+                <option value="">不指定</option>
+            </select>
+        </div>
+
+        <div class="row">
+            <label for="pageBreakMode">分页方式</label>
+            <select id="pageBreakMode">
+                <option value="html" selected>HTML/CSS 分页，适合浏览器打印 PDF</option>
+                <option value="latex">LaTeX 分页，适合 Pandoc xelatex</option>
+                <option value="none">不插入分页</option>
+            </select>
+        </div>
+
+        <div class="row">
+            <label class="check">
+                <input id="includeYaml" type="checkbox" checked />
+                <span>添加 Pandoc YAML 头信息</span>
+            </label>
+        </div>
+
+        <div class="row">
+            <label class="check">
+                <input id="includeToc" type="checkbox" />
+                <span>Markdown 正文中生成目录页 <small>左侧 PDF 书签不一定需要它</small></span>
+            </label>
+        </div>
+
+        <div class="row">
+            <label class="check">
+                <input id="includeSubdirs" type="checkbox" checked />
+                <span>包含子目录图片</span>
+            </label>
+        </div>
+
+        <div class="row">
+            <label class="check">
+                <input id="includeRootDir" type="checkbox" />
+                <span>
+                    图片路径包含所选文件夹名
+                    <small>如果 .md 放在图片文件夹的上一级，可勾选</small>
+                </span>
+            </label>
+        </div>
+
+        <div class="row">
+            <label class="check">
+                <input id="stripNumberPrefix" type="checkbox" />
+                <span>标题去掉开头编号 <small>如 001-封面 → 封面</small></span>
+            </label>
+        </div>
+
+        <div class="row">
+            <button id="generateBtn">生成 Markdown</button>
+            <button id="downloadBtn" class="secondary">下载 .md</button>
+            <button id="copyBtn" class="secondary">复制</button>
+        </div>
+
+        <div id="status" class="info">还没有选择文件夹。</div>
+
+        <div class="row" style="margin-top:14px;">
+            <label>图片列表</label>
+            <div id="fileList" class="file-list">暂无</div>
+        </div>
+
+        <div class="info">
+            <b>转 PDF 示例：</b><br />
+            <code>pandoc images_book.md -o images_book.pdf --pdf-engine=xelatex -V CJKmainfont="PingFang SC"</code>
+        </div>
+    </div>
+
+    <div class="card">
+        <label for="mdOutput">生成结果</label>
+        <textarea id="mdOutput" spellcheck="false" placeholder="生成的 Markdown 会显示在这里"></textarea>
+    </div>
+</div>
+
+<script>
+const IMAGE_EXTS = new Set([
+    ".jpg", ".jpeg", ".png", ".webp",
+    ".bmp", ".gif", ".tif", ".tiff", ".svg"
+]);
+
+const els = {
+    dirInput: document.getElementById("dirInput"),
+    outputName: document.getElementById("outputName"),
+    titleText: document.getElementById("titleText"),
+    imageWidth: document.getElementById("imageWidth"),
+    pageBreakMode: document.getElementById("pageBreakMode"),
+    includeYaml: document.getElementById("includeYaml"),
+    includeToc: document.getElementById("includeToc"),
+    includeSubdirs: document.getElementById("includeSubdirs"),
+    includeRootDir: document.getElementById("includeRootDir"),
+    stripNumberPrefix: document.getElementById("stripNumberPrefix"),
+    generateBtn: document.getElementById("generateBtn"),
+    downloadBtn: document.getElementById("downloadBtn"),
+    copyBtn: document.getElementById("copyBtn"),
+    status: document.getElementById("status"),
+    fileList: document.getElementById("fileList"),
+    mdOutput: document.getElementById("mdOutput")
+};
+
+let selectedFiles = [];
+
+function getExt(name) {
+    const index = name.lastIndexOf(".");
+    return index >= 0 ? name.slice(index).toLowerCase() : "";
+}
+
+function naturalCompare(a, b) {
+    return a.localeCompare(b, "zh-CN", {
+        numeric: true,
+        sensitivity: "base"
+    });
+}
+
+function normalizePath(file) {
+    let path = file.webkitRelativePath || file.name;
+    path = path.replace(/\\/g, "/");
+
+    if (!els.includeRootDir.checked && path.includes("/")) {
+        path = path.split("/").slice(1).join("/");
+    }
+
+    return path;
+}
+
+function escapeMdTitle(text) {
+    return text
+        .replace(/\\/g, "\\\\")
+        .replace(/#/g, "\\#")
+        .replace(/\[/g, "\\[")
+        .replace(/\]/g, "\\]");
+}
+
+function cleanTitle(path) {
+    const filename = path.split("/").pop() || path;
+    let stem = filename.replace(/\.[^.]+$/, "");
+
+    if (els.stripNumberPrefix.checked) {
+        stem = stem.replace(/^\s*\d+\s*[-_.、，\s]+/, "");
+    }
+
+    return escapeMdTitle(stem);
+}
+
+function mdImagePath(path) {
+    // Markdown 尖括号形式对中文、空格、括号更友好；这里只处理会截断尖括号的字符。
+    return path.replace(/>/g, "%3E");
+}
+
+function collectImageFiles() {
+    const all = Array.from(els.dirInput.files || []);
+
+    selectedFiles = all
+        .filter(file => IMAGE_EXTS.has(getExt(file.name)))
+        .map(file => {
+            const path = normalizePath(file);
+            return { file, path };
+        })
+        .filter(item => {
+            if (els.includeSubdirs.checked) return true;
+            return !item.path.includes("/");
+        })
+        .sort((a, b) => naturalCompare(a.path, b.path));
+
+    renderFileList();
+}
+
+function renderFileList() {
+    if (!selectedFiles.length) {
+        els.fileList.innerHTML = '<span class="warn">没有找到图片。</span>';
+        els.status.textContent = "没有找到图片文件。";
+        return;
+    }
+
+    els.fileList.innerHTML = selectedFiles
+        .slice(0, 300)
+        .map(item => `<div>${escapeHtml(item.path)}</div>`)
+        .join("");
+
+    if (selectedFiles.length > 300) {
+        els.fileList.innerHTML += `<div>……还有 ${selectedFiles.length - 300} 个文件</div>`;
+    }
+
+    els.status.textContent = `已找到 ${selectedFiles.length} 张图片。`;
+}
+
+function escapeHtml(str) {
+    return str.replace(/[&<>"']/g, ch => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+    }[ch]));
+}
+
+function getPageBreakLine() {
+    const mode = els.pageBreakMode.value;
+    if (mode === "html") {
+        return '<div style="break-after: page; page-break-after: always;"></div>';
+    }
+    if (mode === "latex") {
+        return "\\newpage";
+    }
+    return "";
+}
+
+function generateMarkdown() {
+    collectImageFiles();
+
+    if (!selectedFiles.length) {
+        els.mdOutput.value = "";
+        return;
+    }
+
+    const lines = [];
+
+    if (els.includeYaml.checked) {
+        lines.push("---");
+        lines.push(`title: ${els.titleText.value || "图片目录"}`);
+        lines.push(`toc: ${els.includeToc.checked ? "true" : "false"}`);
+        lines.push("toc-depth: 1");
+        lines.push("geometry: margin=8mm");
+        lines.push("---");
+        lines.push("");
+    } else if (els.includeToc.checked) {
+        lines.push("# 目录");
+        lines.push("");
+        selectedFiles.forEach(item => {
+            const title = cleanTitle(item.path);
+            lines.push(`- [${title}](#${slugForToc(title)})`);
+        });
+        lines.push("");
+        const pageBreak = getPageBreakLine();
+        if (pageBreak) {
+            lines.push(pageBreak);
+            lines.push("");
+        }
+    }
+
+    selectedFiles.forEach((item, index) => {
+        const title = cleanTitle(item.path);
+        const path = mdImagePath(item.path);
+        const width = els.imageWidth.value;
+
+        lines.push(`# ${title}`);
+        lines.push("");
+
+        if (width) {
+            lines.push(`![${title}](<${path}>){width=${width}}`);
+        } else {
+            lines.push(`![${title}](<${path}>)`);
+        }
+
+        lines.push("");
+
+        if (index !== selectedFiles.length - 1) {
+            const pageBreak = getPageBreakLine();
+            if (pageBreak) {
+                lines.push(pageBreak);
+                lines.push("");
+            }
+        }
+    });
+
+    els.mdOutput.value = lines.join("\n");
+    els.status.textContent = `已生成 Markdown，共 ${selectedFiles.length} 页。`;
+}
+
+function slugForToc(title) {
+    return title
+        .replace(/\\/g, "")
+        .replace(/[^\p{L}\p{N}\s_-]/gu, "")
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, "-");
+}
+
+function downloadMarkdown() {
+    if (!els.mdOutput.value.trim()) {
+        generateMarkdown();
+    }
+
+    if (!els.mdOutput.value.trim()) {
+        alert("没有可下载的内容");
+        return;
+    }
+
+    let name = els.outputName.value.trim() || "images_book.md";
+    if (!name.toLowerCase().endsWith(".md")) {
+        name += ".md";
+    }
+
+    const blob = new Blob([els.mdOutput.value], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    URL.revokeObjectURL(url);
+}
+
+async function copyMarkdown() {
+    if (!els.mdOutput.value.trim()) {
+        generateMarkdown();
+    }
+
+    if (!els.mdOutput.value.trim()) {
+        alert("没有可复制的内容");
+        return;
+    }
+
+    try {
+        await navigator.clipboard.writeText(els.mdOutput.value);
+        els.status.textContent = "已复制到剪贴板。";
+    } catch (err) {
+        els.mdOutput.select();
+        document.execCommand("copy");
+        els.status.textContent = "已复制到剪贴板。";
+    }
+}
+
+els.dirInput.addEventListener("change", generateMarkdown);
+els.generateBtn.addEventListener("click", generateMarkdown);
+els.downloadBtn.addEventListener("click", downloadMarkdown);
+els.copyBtn.addEventListener("click", copyMarkdown);
+
+[
+    els.titleText,
+    els.imageWidth,
+    els.pageBreakMode,
+    els.includeYaml,
+    els.includeToc,
+    els.includeSubdirs,
+    els.includeRootDir,
+    els.stripNumberPrefix
+].forEach(el => {
+    el.addEventListener("change", generateMarkdown);
+    el.addEventListener("input", generateMarkdown);
+});
+</script>
+</body>
+</html>
