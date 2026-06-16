@@ -164,7 +164,7 @@ small { color: var(--muted); }
         <div class="row">
             <label for="pageBreakMode">分页方式</label>
             <select id="pageBreakMode">
-                <option value="html" selected>HTML/CSS 分页，适合浏览器打印 PDF</option>
+                <option value="html" selected>HTML 图片 + CSS 分页，适合浏览器/Typora 打印 PDF</option>
                 <option value="latex">LaTeX 分页，适合 Pandoc xelatex</option>
                 <option value="none">不插入分页</option>
             </select>
@@ -354,6 +354,16 @@ function escapeHtml(str) {
     }[ch]));
 }
 
+function htmlAttr(str) {
+    return String(str).replace(/[&<>"']/g, ch => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+    }[ch]));
+}
+
 function getPageBreakLine() {
     const mode = els.pageBreakMode.value;
     if (mode === "html") {
@@ -406,9 +416,22 @@ function generateMarkdown() {
         lines.push(`# ${title}`);
         lines.push("");
 
-        if (width) {
-            lines.push(`![${title}](<${path}>){width=${width}}`);
+        const pageBreakMode = els.pageBreakMode.value;
+
+        if (pageBreakMode === "html") {
+            // 浏览器/Typora/Markdown 预览打印 PDF 时，不使用 Pandoc 的 {width=100%} 扩展语法。
+            // 否则部分工具会把 {width=100%} 当成普通文字，甚至单独占一页。
+            const styleWidth = width || "100%";
+            lines.push(`<img src="${htmlAttr(path)}" alt="${htmlAttr(title)}" style="width:${htmlAttr(styleWidth)}; max-width:100%; height:auto; display:block; margin:0 auto;" />`);
+        } else if (pageBreakMode === "latex") {
+            // Pandoc + xelatex 模式可以使用图片属性语法。
+            if (width) {
+                lines.push(`![${title}](<${path}>){width=${width}}`);
+            } else {
+                lines.push(`![${title}](<${path}>)`);
+            }
         } else {
+            // 普通 Markdown 模式，尽量保持兼容，不加 {width=100%}。
             lines.push(`![${title}](<${path}>)`);
         }
 
