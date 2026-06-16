@@ -162,6 +162,13 @@ small { color: var(--muted); }
         </div>
 
         <div class="row">
+            <label class="check">
+                <input id="fitOnePage" type="checkbox" checked />
+                <span>A4 按高度适配 <small>图片高度尽量撑满页面，宽度自动等比缩放</small></span>
+            </label>
+        </div>
+
+        <div class="row">
             <label for="pageBreakMode">分页方式</label>
             <select id="pageBreakMode">
                 <option value="html" selected>HTML 图片 + CSS 分页，适合浏览器/Typora 打印 PDF</option>
@@ -222,7 +229,9 @@ small { color: var(--muted); }
         </div>
 
         <div class="info">
-            <b>转 PDF 示例：</b><br />
+            <b>打印建议：</b><br />
+            浏览器/Typora 打印 PDF 时，纸张选 A4，边距选“无”，缩放选 100%。<br /><br />
+            <b>Pandoc 示例：</b><br />
             <code>pandoc images_book.md -o images_book.pdf --pdf-engine=xelatex -V CJKmainfont="PingFang SC"</code>
         </div>
     </div>
@@ -244,6 +253,7 @@ const els = {
     outputName: document.getElementById("outputName"),
     titleText: document.getElementById("titleText"),
     imageWidth: document.getElementById("imageWidth"),
+    fitOnePage: document.getElementById("fitOnePage"),
     pageBreakMode: document.getElementById("pageBreakMode"),
     includeYaml: document.getElementById("includeYaml"),
     includeToc: document.getElementById("includeToc"),
@@ -305,6 +315,114 @@ function cleanTitle(path) {
 function mdImagePath(path) {
     // Markdown 尖括号形式对中文、空格、括号更友好；这里只处理会截断尖括号的字符。
     return path.replace(/>/g, "%3E");
+}
+
+function getGeneratedPrintCss() {
+    return `<style>
+@page {
+    size: A4 portrait;
+    margin: 0;
+}
+
+@media print {
+    html,
+    body {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 210mm !important;
+        max-width: none !important;
+        background: white !important;
+    }
+
+    /* 兼容 Typora、常见 Markdown 预览器的内容容器，避免它们自带 padding / max-width 把图片缩小 */
+    #write,
+    .markdown-body,
+    .typora-export-content,
+    article,
+    main {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 210mm !important;
+        max-width: none !important;
+    }
+
+    h1 {
+        margin: 0 !important;
+        padding: 4mm 6mm 2mm 6mm !important;
+        height: 12mm !important;
+        box-sizing: border-box !important;
+        font-size: 12pt !important;
+        line-height: 1.2 !important;
+        font-weight: 600 !important;
+        overflow: hidden !important;
+        break-after: avoid !important;
+        page-break-after: avoid !important;
+    }
+
+    .pdf-image-box {
+        width: 210mm !important;
+        height: 285mm !important; /* A4 297mm - 标题区域 12mm */
+        box-sizing: border-box !important;
+        padding: 0 6mm 6mm 6mm !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        overflow: hidden !important;
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+    }
+
+    .pdf-image-fit {
+        height: 100% !important;
+        max-height: 100% !important;
+        width: auto !important;
+        max-width: 100% !important;
+        object-fit: contain !important;
+        display: block !important;
+        margin: 0 auto !important;
+    }
+
+    .pdf-page-break {
+        break-after: page !important;
+        page-break-after: always !important;
+        height: 0 !important;
+        line-height: 0 !important;
+        overflow: hidden !important;
+        clear: both !important;
+    }
+}
+
+@media screen {
+    .pdf-image-box {
+        height: 80vh;
+        width: 100%;
+        box-sizing: border-box;
+        padding: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f6f6f6;
+        border: 1px dashed #ccc;
+        margin: 12px 0;
+        overflow: hidden;
+    }
+
+    .pdf-image-fit {
+        height: 100%;
+        max-height: 100%;
+        width: auto;
+        max-width: 100%;
+        object-fit: contain;
+        display: block;
+        margin: 0 auto;
+    }
+
+    .pdf-page-break {
+        border-top: 2px dashed #aaa;
+        margin: 20px 0;
+    }
+}
+</style>`;
 }
 
 function collectImageFiles() {
@@ -393,7 +511,14 @@ function generateMarkdown() {
         lines.push("geometry: margin=8mm");
         lines.push("---");
         lines.push("");
-    } else if (els.includeToc.checked) {
+    }
+
+    if (els.pageBreakMode.value === "html" && els.fitOnePage.checked) {
+        lines.push(getGeneratedPrintCss());
+        lines.push("");
+    }
+
+    if (!els.includeYaml.checked && els.includeToc.checked) {
         lines.push("# 目录");
         lines.push("");
         selectedFiles.forEach(item => {
@@ -420,9 +545,13 @@ function generateMarkdown() {
 
         if (pageBreakMode === "html") {
             // 浏览器/Typora/Markdown 预览打印 PDF 时，不使用 Pandoc 的 {width=100%} 扩展语法。
-            // 否则部分工具会把 {width=100%} 当成普通文字，甚至单独占一页。
-            const styleWidth = width || "100%";
-            lines.push(`<img src="${htmlAttr(path)}" alt="${htmlAttr(title)}" style="width:${htmlAttr(styleWidth)}; max-width:100%; height:auto; display:block; margin:0 auto;" />`);
+            // 按页面高度适配：图片高度撑满可用页高，宽度自动等比缩放。
+            if (els.fitOnePage.checked) {
+                lines.push(`<div class="pdf-image-box"><img class="pdf-image-fit" src="${htmlAttr(path)}" alt="${htmlAttr(title)}" /></div>`);
+            } else {
+                const styleWidth = width || "100%";
+                lines.push(`<img src="${htmlAttr(path)}" alt="${htmlAttr(title)}" style="width:${htmlAttr(styleWidth)}; max-width:100%; height:auto; display:block; margin:0 auto;" />`);
+            }
         } else if (pageBreakMode === "latex") {
             // Pandoc + xelatex 模式可以使用图片属性语法。
             if (width) {
@@ -515,6 +644,7 @@ els.copyBtn.addEventListener("click", copyMarkdown);
 [
     els.titleText,
     els.imageWidth,
+    els.fitOnePage,
     els.pageBreakMode,
     els.includeYaml,
     els.includeToc,
