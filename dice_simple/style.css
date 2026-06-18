@@ -1,0 +1,136 @@
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #1d1b22;
+  color: #f4e8c8;
+  font-family: Arial, "Microsoft YaHei", sans-serif;
+}
+
+.box {
+  width: min(520px, 92vw);
+  padding: 24px;
+  border-radius: 16px;
+  background: #282331;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  text-align: center;
+}
+
+h1 { margin-top: 0; }
+
+.dice-area {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  min-height: 90px;
+  margin: 24px 0 12px;
+}
+
+/* 3D 场景 */
+.dice-scene {
+  width: 64px;
+  height: 64px;
+  perspective: 240px;
+}
+
+/* 骰子本体 */
+.dice-cube {
+  width: 64px;
+  height: 64px;
+  position: relative;
+  transform-style: preserve-3d;
+  transform: rotateX(-18deg) rotateY(18deg);
+  cursor: pointer;
+}
+
+/* 骰子的 6 个面 */
+.face {
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  padding: 9px;
+  border: 2px solid #c8a84a;
+  border-radius: 10px;
+  background: #15100b;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 3px;
+  backface-visibility: hidden;
+}
+
+.front  { transform: translateZ(32px); }
+.back   { transform: rotateY(180deg) translateZ(32px); }
+.right  { transform: rotateY(90deg) translateZ(32px); }
+.left   { transform: rotateY(-90deg) translateZ(32px); }
+.top    { transform: rotateX(90deg) translateZ(32px); }
+.bottom { transform: rotateX(-90deg) translateZ(32px); }
+
+/* 骰子点 */
+.dot {
+  width: 80%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  margin: auto;
+}
+
+.dot.on { background: #f2d36b; }
+
+#result {
+  min-height: 42px;
+  margin: 16px 0;
+  font-size: 22px;
+  color: #f2d36b;
+}
+
+.modifier-row {
+  margin: 10px 0 16px;
+}
+
+input {
+  width: 80px;
+  padding: 6px;
+  border-radius: 6px;
+  border: 1px solid #8a7637;
+  background: #15131a;
+  color: white;
+  text-align: center;
+}
+
+.buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+button {
+  padding: 8px 12px;
+  border: 1px solid #c8a84a;
+  border-radius: 8px;
+  background: #15131a;
+  color: #f2d36b;
+  cursor: pointer;
+}
+
+button:hover { background: #3a3147; }
+
+#history {
+  min-height: 50px;
+  max-height: 130px;
+  overflow: auto;
+  padding: 8px;
+  border-radius: 8px;
+  background: #15131a;
+  text-align: left;
+}
+
+.history-item {
+  padding: 4px 0;
+  border-bottom: 1px solid #3a3147;
+  font-size: 14px;
+}

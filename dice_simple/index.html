@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>简单骰子工具</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="box">
+    <h1>🎲 简单骰子工具</h1>
+
+    <div class="dice-area">
+      <div class="dice-scene">
+        <div class="dice-cube" id="die1" onclick="rollDice(1, 'sum')">
+          <div class="face front" data-value="1"></div>
+          <div class="face back" data-value="6"></div>
+          <div class="face right" data-value="3"></div>
+          <div class="face left" data-value="4"></div>
+          <div class="face top" data-value="2"></div>
+          <div class="face bottom" data-value="5"></div>
+        </div>
+      </div>
+
+      <div class="dice-scene" id="die2-wrap" style="display:none">
+        <div class="dice-cube" id="die2" onclick="rollDice(2, 'sum')">
+          <div class="face front" data-value="1"></div>
+          <div class="face back" data-value="6"></div>
+          <div class="face right" data-value="3"></div>
+          <div class="face left" data-value="4"></div>
+          <div class="face top" data-value="2"></div>
+          <div class="face bottom" data-value="5"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="result">点击骰子或按钮开始</div>
+
+    <div class="modifier-row">
+      <label>修正值：</label>
+      <input id="modifier" type="number" value="0" />
+    </div>
+
+    <div class="buttons">
+      <button onclick="rollDice(1, 'sum')">掷 1d6</button>
+      <button onclick="rollDice(2, 'sum')">掷 2d6 求和</button>
+      <button onclick="rollDice(2, 'high')">2d6 取高</button>
+      <button onclick="rollDice(2, 'low')">2d6 取低</button>
+      <button onclick="clearHistory()">清空记录</button>
+    </div>
+
+    <h2>记录</h2>
+    <div id="history"></div>
+  </main>
+
+  <script src="dice.js"></script>
+</body>
+</html>
