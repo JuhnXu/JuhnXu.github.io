@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TTS JSON 资源下载器</title>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<style>
+:root{--bg:#101217;--panel:#181b23;--panel2:#202432;--text:#eef2ff;--muted:#9aa3b2;--line:#303647;--accent:#7c5cff;--ok:#48d597;--bad:#ff6b6b;--warn:#ffd166}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:linear-gradient(135deg,#0f1118,#171320);color:var(--text);padding:24px}h1{margin:0 0 8px;font-size:28px}.sub{color:var(--muted);margin-bottom:20px;line-height:1.6}.wrap{display:grid;grid-template-columns:360px 1fr;gap:18px}.card{background:rgba(24,27,35,.92);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 12px 36px rgba(0,0,0,.25)}label{display:block;margin:14px 0 8px;color:#cfd6e6;font-weight:600}input[type=file],input[type=text]{width:100%;background:#0f1219;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:11px}button{width:100%;border:0;border-radius:12px;background:var(--accent);color:white;padding:13px 16px;font-weight:700;font-size:15px;cursor:pointer;margin-top:12px}button.secondary{background:#2a3040}button:disabled{opacity:.45;cursor:not-allowed}.hint{font-size:13px;color:var(--muted);line-height:1.6}.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}.stat{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px}.stat b{display:block;font-size:22px;margin-bottom:2px}.bar{height:10px;background:#0f1219;border-radius:99px;overflow:hidden;border:1px solid var(--line);margin:12px 0}.bar>div{height:100%;width:0%;background:var(--accent);transition:.2s}.log{height:220px;overflow:auto;background:#0f1219;border:1px solid var(--line);border-radius:12px;padding:10px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;white-space:pre-wrap;color:#cfd6e6}.table-wrap{overflow:auto;max-height:72vh;border:1px solid var(--line);border-radius:14px}table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:10px;border-bottom:1px solid var(--line);vertical-align:top}th{position:sticky;top:0;background:#202432;text-align:left;z-index:1}td.path{font-family:ui-monospace,Menlo,Consolas,monospace;color:#d8ddff;min-width:360px}.tag{display:inline-block;padding:2px 8px;border-radius:999px;background:#30384d;color:#dbe2ff;font-size:12px}.ok{color:var(--ok)}.bad{color:var(--bad)}.warn{color:var(--warn)}a{color:#a999ff}details{margin-top:12px}.small{font-size:12px;color:var(--muted)}@media(max-width:900px){.wrap{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<h1>Tabletop Simulator JSON 资源下载器</h1>
+<div class="sub">选择一个或多个 TTS 存档 JSON，网页会递归读取 <b>ObjectStates / ContainedObjects / States / CustomDeck / CustomImage / CustomPDF</b> 等层级，按层级路径打包下载资源。</div>
+<div class="wrap">
+  <div class="card">
+    <label>选择 JSON 文件</label>
+    <input id="fileInput" type="file" accept=".json,application/json" multiple />
+    <label>输出 zip 文件名</label>
+    <input id="zipName" type="text" value="tts_assets.zip" />
+    <div class="stats">
+      <div class="stat"><b id="jsonCount">0</b><span>JSON</span></div>
+      <div class="stat"><b id="urlCount">0</b><span>资源链接</span></div>
+    </div>
+    <div class="bar"><div id="bar"></div></div>
+    <button id="scanBtn">扫描资源</button>
+    <button id="downloadBtn" disabled>下载资源 zip</button>
+    <button class="secondary" id="manifestBtn" disabled>只导出清单 manifest.json</button>
+    <details>
+      <summary>说明</summary>
+      <p class="hint">浏览器下载跨域资源时，目标网站必须允许 CORS。若个别链接下载失败，清单里会保留原始 URL，可用脚本版继续下载。</p>
+      <p class="hint">资源会按类似 <code>3660427548/ObjectStates/Deck_98de76/ContainedObjects/Card_abe6b1/CustomDeck/23/FaceURL.ext</code> 的路径保存。</p>
+    </details>
+    <label>日志</label>
+    <div id="log" class="log"></div>
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">资源列表</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>类型</th><th>保存路径</th><th>URL</th><th>状态</th></tr></thead>
+        <tbody id="tbody"><tr><td colspan="4" class="small">还没有扫描结果</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<script>
+const URL_KEYS = new Set([
+  'ImageURL','ImageSecondaryURL','FaceURL','BackURL','PDFUrl','DiffuseURL','NormalURL','ColliderURL','MeshURL','AssetbundleURL','AssetBundleURL','MusicURL','SoundURL'
+]);
+const fileInput = document.getElementById('fileInput');
+const scanBtn = document.getElementById('scanBtn');
+const downloadBtn = document.getElementById('downloadBtn');
+const manifestBtn = document.getElementById('manifestBtn');
+const tbody = document.getElementById('tbody');
+const logBox = document.getElementById('log');
+const bar = document.getElementById('bar');
+let assets = [];
+
+function log(msg, cls=''){
+  const time = new Date().toLocaleTimeString();
+  logBox.innerHTML += `[${time}] ${msg}\n`;
+  logBox.scrollTop = logBox.scrollHeight;
+}
+function safeName(s){
+  return String(s || 'unnamed').replace(/[\\/:*?"<>|]+/g,'_').replace(/\s+/g,'_').slice(0,80) || 'unnamed';
+}
+function isURL(s){ return typeof s === 'string' && /^https?:\/\//i.test(s); }
+function extFromUrl(url, fallback){
+  try{
+    const u = new URL(url);
+    const p = u.pathname;
+    const m = p.match(/\.([a-z0-9]{2,5})(?:$|[?#])/i) || p.match(/\.([a-z0-9]{2,5})$/i);
+    if(m) return '.' + m[1].toLowerCase();
+  }catch(e){}
+  return fallback || '.bin';
+}
+function folderForObject(obj, index){
+  if(!obj || typeof obj !== 'object') return `Item_${index}`;
+  const name = safeName(obj.Name || obj.Nickname || 'Object');
+  const guid = obj.GUID ? '_' + safeName(obj.GUID) : '';
+  return `${String(index).padStart(3,'0')}_${name}${guid}`;
+}
+function addAsset(fileBase, pathParts, key, url, fallbackExt){
+  if(!url) return;
+  const ext = extFromUrl(url, fallbackExt);
+  const fileName = `${safeName(key)}${ext}`;
+  const outPath = [safeName(fileBase), ...pathParts.map(safeName), fileName].join('/');
+  assets.push({type:key, path:outPath, url, status:'未下载'});
+}
+function walk(value, ctx){
+  if(Array.isArray(value)){
+    value.forEach((item, i) => {
+      const part = item && typeof item === 'object' && (item.Name || item.GUID || item.Nickname) ? folderForObject(item, i) : String(i).padStart(3,'0');
+      walk(item, {...ctx, path:[...ctx.path, part]});
+    });
+    return;
+  }
+  if(!value || typeof value !== 'object') return;
+
+  // 识别几个 TTS 特殊结构，让目录更清楚
+  if(value.CustomImage){ walk(value.CustomImage, {...ctx, path:[...ctx.path, 'CustomImage']}); }
+  if(value.CustomPDF){ walk(value.CustomPDF, {...ctx, path:[...ctx.path, 'CustomPDF']}); }
+  if(value.CustomDeck){
+    for(const [deckId, deck] of Object.entries(value.CustomDeck)){
+      walk(deck, {...ctx, path:[...ctx.path, 'CustomDeck', `Deck_${deckId}`]});
+    }
+  }
+  if(value.ContainedObjects){ walk(value.ContainedObjects, {...ctx, path:[...ctx.path, 'ContainedObjects']}); }
+  if(value.States){
+    for(const [stateId, state] of Object.entries(value.States)){
+      walk(state, {...ctx, path:[...ctx.path, 'States', `State_${stateId}`]});
+    }
+  }
+  if(value.ObjectStates){ walk(value.ObjectStates, {...ctx, path:[...ctx.path, 'ObjectStates']}); }
+
+  for(const [key, v] of Object.entries(value)){
+    if(URL_KEYS.has(key) && isURL(v)){
+      const fallback = key.toLowerCase().includes('pdf') ? '.pdf' : '.png';
+      addAsset(ctx.fileBase, ctx.path, key, v, fallback);
+    }else if(isURL(v) && /url$/i.test(key)){
+      addAsset(ctx.fileBase, ctx.path, key, v, '.bin');
+    }
+  }
+}
+async function readJSONFile(file){
+  const text = await file.text();
+  return JSON.parse(text);
+}
+function render(){
+  document.getElementById('jsonCount').textContent = fileInput.files.length;
+  document.getElementById('urlCount').textContent = assets.length;
+  if(!assets.length){
+    tbody.innerHTML = '<tr><td colspan="4" class="small">还没有扫描结果</td></tr>';
+    return;
+  }
+  tbody.innerHTML = assets.map((a,i)=>`<tr>
+    <td><span class="tag">${a.type}</span></td>
+    <td class="path">${a.path}</td>
+    <td><a href="${a.url}" target="_blank" rel="noopener">打开</a><div class="small">${a.url}</div></td>
+    <td id="st${i}">${a.status}</td>
+  </tr>`).join('');
+}
+function setStatus(i, text, cls){
+  assets[i].status = text;
+  const el = document.getElementById('st'+i);
+  if(el){ el.textContent = text; el.className = cls || ''; }
+}
+async function scan(){
+  assets = [];
+  logBox.textContent = '';
+  bar.style.width = '0%';
+  if(!fileInput.files.length){ alert('请先选择 JSON 文件'); return; }
+  for(const file of fileInput.files){
+    try{
+      const json = await readJSONFile(file);
+      const base = file.name.replace(/\.json$/i,'');
+      walk(json, {fileBase:base, path:[]});
+      log(`扫描完成：${file.name}`);
+    }catch(e){
+      log(`解析失败：${file.name}，${e.message}`);
+    }
+  }
+  // URL 去重，但保留第一次出现的层级路径
+  const seen = new Set();
+  assets = assets.filter(a => {
+    if(seen.has(a.url)) return false;
+    seen.add(a.url); return true;
+  });
+  render();
+  downloadBtn.disabled = assets.length === 0;
+  manifestBtn.disabled = assets.length === 0;
+  log(`共找到 ${assets.length} 个唯一资源链接`);
+}
+async function downloadZip(){
+  if(!assets.length) return;
+  if(typeof JSZip === 'undefined'){
+    alert('JSZip 未加载成功，请联网后刷新页面，或把 jszip.min.js 放到同目录并修改引用。');
+    return;
+  }
+  scanBtn.disabled = downloadBtn.disabled = manifestBtn.disabled = true;
+  const zip = new JSZip();
+  zip.file('manifest.json', JSON.stringify(assets.map(({type,path,url})=>({type,path,url})), null, 2));
+  let ok = 0, fail = 0;
+  for(let i=0;i<assets.length;i++){
+    const a = assets[i];
+    bar.style.width = `${Math.round(i/assets.length*100)}%`;
+    setStatus(i, '下载中...', 'warn');
+    try{
+      const res = await fetch(a.url);
+      if(!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      zip.file(a.path, blob);
+      ok++;
+      setStatus(i, '成功', 'ok');
+    }catch(e){
+      fail++;
+      setStatus(i, '失败：' + e.message, 'bad');
+      zip.file(a.path + '.url.txt', a.url + '\n下载失败：' + e.message + '\n');
+    }
+  }
+  bar.style.width = '100%';
+  log(`下载完成：成功 ${ok}，失败 ${fail}`);
+  const blob = await zip.generateAsync({type:'blob'});
+  saveBlob(blob, document.getElementById('zipName').value || 'tts_assets.zip');
+  scanBtn.disabled = false; downloadBtn.disabled = false; manifestBtn.disabled = false;
+}
+function saveBlob(blob, name){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();}, 1000);
+}
+function exportManifest(){
+  const blob = new Blob([JSON.stringify(assets, null, 2)], {type:'application/json'});
+  saveBlob(blob, 'manifest.json');
+}
+scanBtn.addEventListener('click', scan);
+downloadBtn.addEventListener('click', downloadZip);
+manifestBtn.addEventListener('click', exportManifest);
+</script>
+</body>
+</html>
