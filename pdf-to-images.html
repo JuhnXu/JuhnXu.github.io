@@ -1,0 +1,270 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>PDF 逐页拆分成图片</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 0 20px;
+      background: #f6f7f9;
+      color: #222;
+    }
+
+    h1 {
+      font-size: 28px;
+    }
+
+    .box {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+      margin-bottom: 20px;
+    }
+
+    input, button, select {
+      font-size: 16px;
+      padding: 8px 12px;
+      margin: 8px 0;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      background: #2563eb;
+      color: white;
+      margin-right: 8px;
+    }
+
+    button:disabled {
+      background: #aaa;
+      cursor: not-allowed;
+    }
+
+    #downloadZipBtn {
+      background: #dc2626;
+      display: none;
+    }
+
+    .page {
+      background: white;
+      padding: 16px;
+      margin-bottom: 16px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    }
+
+    canvas {
+      max-width: 100%;
+      border: 1px solid #ddd;
+      margin-top: 8px;
+    }
+
+    .download {
+      display: inline-block;
+      margin-top: 8px;
+      text-decoration: none;
+      background: #16a34a;
+      color: white;
+      padding: 6px 10px;
+      border-radius: 6px;
+    }
+
+    #status {
+      margin-top: 12px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>PDF 逐页拆分成图片</h1>
+
+  <div class="box">
+    <p>选择一个本地 PDF 文件，将每一页转换为 PNG 图片，并可一键打包成 ZIP 下载。</p>
+
+    <input type="file" id="pdfFile" accept="application/pdf" />
+
+    <br />
+
+    <label>
+      清晰度：
+      <select id="scale">
+        <option value="1">普通 1x</option>
+        <option value="2" selected>高清 2x</option>
+        <option value="3">超清 3x</option>
+        <option value="4">超大 4x</option>
+      </select>
+    </label>
+
+    <br />
+
+    <button id="convertBtn">开始转换</button>
+    <button id="downloadZipBtn">下载全部 ZIP</button>
+
+    <div id="status"></div>
+  </div>
+
+  <div id="output"></div>
+
+  <!-- PDF.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+  <!-- JSZip -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+  <script>
+    const pdfFileInput = document.getElementById("pdfFile");
+    const convertBtn = document.getElementById("convertBtn");
+    const downloadZipBtn = document.getElementById("downloadZipBtn");
+    const output = document.getElementById("output");
+    const statusText = document.getElementById("status");
+    const scaleSelect = document.getElementById("scale");
+
+    let imageFiles = [];
+    let currentBaseName = "pdf-pages";
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+    convertBtn.addEventListener("click", async () => {
+      const file = pdfFileInput.files[0];
+
+      if (!file) {
+        alert("请先选择一个 PDF 文件");
+        return;
+      }
+
+      output.innerHTML = "";
+      imageFiles = [];
+      downloadZipBtn.style.display = "none";
+
+      statusText.textContent = "正在读取 PDF...";
+      convertBtn.disabled = true;
+      downloadZipBtn.disabled = true;
+
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+        const pageCount = pdf.numPages;
+        const scale = Number(scaleSelect.value);
+
+        currentBaseName = file.name.replace(/\.pdf$/i, "");
+
+        statusText.textContent = `共 ${pageCount} 页，开始转换...`;
+
+        for (let pageNumber = 1; pageNumber <= pageCount; pageNumber++) {
+          statusText.textContent = `正在转换第 ${pageNumber} / ${pageCount} 页...`;
+
+          const page = await pdf.getPage(pageNumber);
+          const viewport = page.getViewport({ scale });
+
+          const canvas = document.createElement("canvas");
+          const context = canvas.getContext("2d");
+
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+
+          await page.render({
+            canvasContext: context,
+            viewport: viewport
+          }).promise;
+
+          const blob = await new Promise(resolve => {
+            canvas.toBlob(resolve, "image/png");
+          });
+
+          const fileName = `${currentBaseName}-第${String(pageNumber).padStart(3, "0")}页.png`;
+          const imageUrl = URL.createObjectURL(blob);
+
+          imageFiles.push({
+            fileName,
+            blob
+          });
+
+          const pageBox = document.createElement("div");
+          pageBox.className = "page";
+
+          const title = document.createElement("h3");
+          title.textContent = `第 ${pageNumber} 页`;
+
+          const downloadLink = document.createElement("a");
+          downloadLink.href = imageUrl;
+          downloadLink.download = fileName;
+          downloadLink.textContent = "下载这张图片";
+          downloadLink.className = "download";
+
+          pageBox.appendChild(title);
+          pageBox.appendChild(downloadLink);
+          pageBox.appendChild(document.createElement("br"));
+          pageBox.appendChild(canvas);
+
+          output.appendChild(pageBox);
+        }
+
+        statusText.textContent = "转换完成，可以单独下载图片，也可以一键下载全部 ZIP。";
+        downloadZipBtn.style.display = "inline-block";
+        downloadZipBtn.disabled = false;
+
+      } catch (error) {
+        console.error(error);
+        statusText.textContent = "转换失败，请确认 PDF 文件是否正常。";
+      } finally {
+        convertBtn.disabled = false;
+      }
+    });
+
+    downloadZipBtn.addEventListener("click", async () => {
+      if (imageFiles.length === 0) {
+        alert("还没有可打包的图片，请先转换 PDF。");
+        return;
+      }
+
+      downloadZipBtn.disabled = true;
+      convertBtn.disabled = true;
+      statusText.textContent = "正在打包 ZIP...";
+
+      try {
+        const zip = new JSZip();
+
+        imageFiles.forEach(item => {
+          zip.file(item.fileName, item.blob);
+        });
+
+        const zipBlob = await zip.generateAsync({
+          type: "blob"
+        }, metadata => {
+          statusText.textContent = `正在打包 ZIP... ${metadata.percent.toFixed(1)}%`;
+        });
+
+        const zipUrl = URL.createObjectURL(zipBlob);
+
+        const a = document.createElement("a");
+        a.href = zipUrl;
+        a.download = `${currentBaseName}-图片.zip`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+
+        URL.revokeObjectURL(zipUrl);
+
+        statusText.textContent = "ZIP 打包完成。";
+
+      } catch (error) {
+        console.error(error);
+        statusText.textContent = "ZIP 打包失败。";
+      } finally {
+        downloadZipBtn.disabled = false;
+        convertBtn.disabled = false;
+      }
+    });
+  </script>
+
+</body>
+</html>
