@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FLAC 转 MP3 本地转换器</title>
+  <style>
+    :root { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #1f2937; background:#f6f7fb; }
+    body { margin:0; padding:32px; }
+    .app { max-width: 860px; margin:auto; background:white; border-radius:18px; padding:28px; box-shadow:0 10px 30px rgba(0,0,0,.08); }
+    h1 { margin:0 0 8px; font-size:28px; }
+    p { line-height:1.65; color:#4b5563; }
+    .drop { border:2px dashed #cbd5e1; border-radius:16px; padding:28px; text-align:center; background:#f8fafc; margin:20px 0; }
+    .drop.drag { border-color:#2563eb; background:#eff6ff; }
+    input[type=file] { margin:12px 0; }
+    label { display:block; margin:14px 0 6px; font-weight:600; }
+    select, button { font-size:16px; padding:10px 12px; border-radius:10px; border:1px solid #cbd5e1; }
+    button { background:#2563eb; color:white; border:0; cursor:pointer; margin-top:18px; }
+    button.secondary { background:#0f766e; }
+    button:disabled { background:#94a3b8; cursor:not-allowed; }
+    .row { display:flex; flex-wrap:wrap; gap:16px; align-items:end; }
+    .card { border:1px solid #e5e7eb; border-radius:14px; padding:14px; margin-top:12px; background:#fff; }
+    progress { width:100%; height:16px; }
+    .small { font-size:13px; color:#6b7280; }
+    .ok { color:#047857; }
+    .err { color:#b91c1c; white-space:pre-wrap; }
+    a.download { display:inline-block; margin-top:8px; color:#2563eb; font-weight:600; }
+    code { background:#f1f5f9; padding:2px 5px; border-radius:5px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <h1>FLAC 转 MP3 本地转换器</h1>
+    <p>这个版本不使用 ffmpeg.wasm，避免一直卡在“加载核心”。文件只在你的浏览器里处理，不上传服务器。</p>
+
+    <div class="drop" id="drop">
+      <strong>选择或拖入 FLAC 文件</strong><br>
+      <input id="files" type="file" accept=".flac,audio/flac" multiple>
+      <div class="small">支持批量转换。转换后可以单独下载，也可以一键打包 ZIP 下载。</div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label for="quality">MP3 质量</label>
+        <select id="quality">
+          <option value="320">320 kbps，高质量，文件较大</option>
+          <option value="256">256 kbps，推荐</option>
+          <option value="192">192 kbps，体积较小</option>
+          <option value="128">128 kbps，体积最小</option>
+        </select>
+      </div>
+      <button id="convert">开始转换</button>
+      <button id="downloadZip" class="secondary" disabled>打包下载全部 MP3</button>
+    </div>
+
+    <p class="small">如果浏览器提示无法解码 FLAC，请换 Chrome / Edge 再试。特别大的 FLAC 可能会受浏览器内存限制。</p>
+
+    <div id="list"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script>
+    const fileInput = document.getElementById('files');
+    const convertBtn = document.getElementById('convert');
+    const downloadZipBtn = document.getElementById('downloadZip');
+    const list = document.getElementById('list');
+    const drop = document.getElementById('drop');
+
+    let selectedFiles = [];
+    let convertedFiles = [];
+
+    fileInput.addEventListener('change', () => {
+      selectedFiles = [...fileInput.files];
+      convertedFiles = [];
+      downloadZipBtn.disabled = true;
+      renderQueued();
+    });
+
+    ['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e => {
+      e.preventDefault(); drop.classList.add('drag');
+    }));
+    ['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => {
+      e.preventDefault(); drop.classList.remove('drag');
+    }));
+    drop.addEventListener('drop', e => {
+      selectedFiles = [...e.dataTransfer.files].filter(f => f.name.toLowerCase().endsWith('.flac'));
+      convertedFiles = [];
+      downloadZipBtn.disabled = true;
+      renderQueued();
+    });
+
+    function renderQueued() {
+      list.innerHTML = '';
+      selectedFiles.forEach(file => {
+        const div = document.createElement('div');
+        div.className = 'card';
+        div.id = 'file-' + safeId(file.name);
+        div.innerHTML = `<strong>${escapeHtml(file.name)}</strong><div class="small">等待转换，大小：${formatSize(file.size)}</div>`;
+        list.appendChild(div);
+      });
+    }
+
+    convertBtn.addEventListener('click', async () => {
+      if (!selectedFiles.length) {
+        alert('请先选择 FLAC 文件');
+        return;
+      }
+      if (!window.lamejs) {
+        alert('MP3 编码库 lamejs 没有加载成功。请确认网络能访问 jsDelivr，或使用离线版。');
+        return;
+      }
+      convertedFiles = [];
+      downloadZipBtn.disabled = true;
+      convertBtn.disabled = true;
+      try {
+        for (const file of selectedFiles) {
+          await convertOne(file);
+        }
+        downloadZipBtn.disabled = convertedFiles.length === 0;
+      } finally {
+        convertBtn.disabled = false;
+      }
+    });
+
+
+
+    downloadZipBtn.addEventListener('click', async () => {
+      if (!convertedFiles.length) {
+        alert('还没有可打包的 MP3，请先转换文件。');
+        return;
+      }
+      if (!window.JSZip) {
+        alert('ZIP 打包库 JSZip 没有加载成功。请确认网络能访问 jsDelivr，或使用离线版。');
+        return;
+      }
+      downloadZipBtn.disabled = true;
+      const oldText = downloadZipBtn.textContent;
+      downloadZipBtn.textContent = '正在打包...';
+      try {
+        const zip = new JSZip();
+        for (const item of convertedFiles) {
+          zip.file(item.name, item.blob);
+        }
+        const zipBlob = await zip.generateAsync({ type: 'blob' }, metadata => {
+          downloadZipBtn.textContent = `正在打包 ${Math.round(metadata.percent)}%`;
+        });
+        const url = URL.createObjectURL(zipBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'converted-mp3.zip';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 60 * 1000);
+      } catch (err) {
+        alert('打包失败：' + (err && err.message ? err.message : String(err)));
+      } finally {
+        downloadZipBtn.textContent = oldText;
+        downloadZipBtn.disabled = convertedFiles.length === 0;
+      }
+    });
+
+    async function convertOne(file) {
+      const box = document.getElementById('file-' + safeId(file.name));
+      box.innerHTML = `<strong>${escapeHtml(file.name)}</strong><p>读取文件中...</p><progress max="100" value="5"></progress>`;
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        box.innerHTML = `<strong>${escapeHtml(file.name)}</strong><p>浏览器正在解码 FLAC...</p><progress max="100" value="20"></progress>`;
+
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const audioCtx = new AudioContext();
+        const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer.slice(0));
+        await audioCtx.close();
+
+        box.innerHTML = `<strong>${escapeHtml(file.name)}</strong><p>正在编码 MP3...</p><progress id="p-${safeId(file.name)}" max="100" value="30"></progress>`;
+        const bitrate = Number(document.getElementById('quality').value);
+        const mp3Blob = await encodeMp3(audioBuffer, bitrate, file.name);
+
+        const url = URL.createObjectURL(mp3Blob);
+        const outName = file.name.replace(/\.flac$/i, '') + '.mp3';
+        convertedFiles.push({ name: uniqueName(outName, convertedFiles.map(x => x.name)), blob: mp3Blob });
+        const savedName = convertedFiles[convertedFiles.length - 1].name;
+        box.innerHTML = `<strong>${escapeHtml(file.name)}</strong><div class="ok">转换完成：${escapeHtml(savedName)}，大小：${formatSize(mp3Blob.size)}</div><a class="download" href="${url}" download="${escapeHtml(savedName)}">下载 MP3</a>`;
+      } catch (err) {
+        box.innerHTML = `<strong>${escapeHtml(file.name)}</strong><div class="err">转换失败：\n${escapeHtml(err && err.message ? err.message : String(err))}\n\n建议：换 Chrome / Edge，或使用命令行 ffmpeg。</div>`;
+      }
+    }
+
+    async function encodeMp3(audioBuffer, kbps, fileName) {
+      const sampleRate = audioBuffer.sampleRate;
+      const channels = Math.min(2, audioBuffer.numberOfChannels);
+      const left = audioBuffer.getChannelData(0);
+      const right = channels > 1 ? audioBuffer.getChannelData(1) : left;
+      const mp3Encoder = new lamejs.Mp3Encoder(channels, sampleRate, kbps);
+      const blockSize = 1152;
+      const mp3Data = [];
+      const total = left.length;
+      const progress = document.getElementById('p-' + safeId(fileName));
+
+      for (let i = 0; i < total; i += blockSize) {
+        const l = floatTo16BitPCM(left.subarray(i, i + blockSize));
+        let mp3buf;
+        if (channels === 2) {
+          const r = floatTo16BitPCM(right.subarray(i, i + blockSize));
+          mp3buf = mp3Encoder.encodeBuffer(l, r);
+        } else {
+          mp3buf = mp3Encoder.encodeBuffer(l);
+        }
+        if (mp3buf.length > 0) mp3Data.push(mp3buf);
+        if (progress && i % (blockSize * 100) === 0) {
+          progress.value = 30 + Math.round((i / total) * 65);
+          await new Promise(requestAnimationFrame);
+        }
+      }
+      const end = mp3Encoder.flush();
+      if (end.length > 0) mp3Data.push(end);
+      if (progress) progress.value = 100;
+      return new Blob(mp3Data, { type: 'audio/mpeg' });
+    }
+
+    function floatTo16BitPCM(float32Array) {
+      const output = new Int16Array(float32Array.length);
+      for (let i = 0; i < float32Array.length; i++) {
+        let s = Math.max(-1, Math.min(1, float32Array[i]));
+        output[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+      }
+      return output;
+    }
+
+    function uniqueName(name, usedNames) {
+      if (!usedNames.includes(name)) return name;
+      const dot = name.lastIndexOf('.');
+      const base = dot >= 0 ? name.slice(0, dot) : name;
+      const ext = dot >= 0 ? name.slice(dot) : '';
+      let i = 1;
+      let candidate;
+      do {
+        candidate = `${base}-${String(i).padStart(2, '0')}${ext}`;
+        i++;
+      } while (usedNames.includes(candidate));
+      return candidate;
+    }
+
+    function safeId(s) { return btoa(unescape(encodeURIComponent(s))).replace(/[^a-zA-Z0-9]/g, ''); }
+    function formatSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+    }
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+    }
+  </script>
+</body>
+</html>
