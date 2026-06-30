@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>九宫格内容感知压缩工具</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <aside class="panel">
+        <section class="brand">
+          <h1>九宫格压缩</h1>
+          <p>9-slice image resampling</p>
+        </section>
+
+        <section class="control-group">
+          <label class="file-button">
+            <input id="fileInput" type="file" accept="image/*" />
+            <span>上传图片</span>
+          </label>
+          <div class="meta" id="imageMeta">等待图片</div>
+        </section>
+
+        <section class="control-group">
+          <h2>分割线</h2>
+          <div class="grid-2">
+            <label>
+              X1
+              <input id="x1Input" type="number" min="0" step="1" disabled />
+            </label>
+            <label>
+              X2
+              <input id="x2Input" type="number" min="0" step="1" disabled />
+            </label>
+            <label>
+              Y1
+              <input id="y1Input" type="number" min="0" step="1" disabled />
+            </label>
+            <label>
+              Y2
+              <input id="y2Input" type="number" min="0" step="1" disabled />
+            </label>
+          </div>
+        </section>
+
+        <section class="control-group">
+          <h2>目标尺寸</h2>
+          <div class="grid-2">
+            <label>
+              宽度
+              <input id="targetWidth" type="number" min="1" step="1" disabled />
+            </label>
+            <label>
+              高度
+              <input id="targetHeight" type="number" min="1" step="1" disabled />
+            </label>
+          </div>
+          <button id="fitCenterButton" class="secondary" disabled>切掉五个伸缩区</button>
+          <button id="resetButton" class="secondary" disabled>重置分割线</button>
+        </section>
+
+        <section class="control-group">
+          <h2>导出</h2>
+          <label class="file-button secondary-file">
+            <input id="metaTemplateInput" type="file" accept=".meta,application/json" />
+            <span>读取 Cocos Meta</span>
+          </label>
+          <div class="meta" id="metaTemplateStatus">未使用 meta 模板</div>
+          <div class="button-row">
+            <button id="downloadPng" disabled>PNG</button>
+            <button id="downloadJson" class="secondary" disabled>JSON</button>
+            <button id="downloadMeta" class="secondary" disabled>META</button>
+          </div>
+        </section>
+      </aside>
+
+      <section class="workspace">
+        <div class="canvas-shell editor-shell">
+          <div class="toolbar">
+            <strong>源图编辑</strong>
+            <span>拖动 2 条竖线和 2 条横线</span>
+          </div>
+          <div class="stage-wrap">
+            <canvas id="sourceCanvas"></canvas>
+            <div id="overlay" class="overlay" hidden>
+              <div class="split-line vertical" data-line="x1" tabindex="0"></div>
+              <div class="split-line vertical" data-line="x2" tabindex="0"></div>
+              <div class="split-line horizontal" data-line="y1" tabindex="0"></div>
+              <div class="split-line horizontal" data-line="y2" tabindex="0"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="canvas-shell">
+          <div class="toolbar">
+            <strong>输出预览</strong>
+            <span id="outputMeta">未生成</span>
+          </div>
+          <div class="preview-wrap">
+            <canvas id="previewCanvas"></canvas>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
