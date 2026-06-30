@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plist 图集解包 / 打包工具</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <h1>Plist 图集解包 / 打包工具</h1>
+      <p>本地浏览器运行：根据 plist + png 解开图集，也可以读取文件夹图片重新打包成图集和 plist。</p>
+    </div>
+    <span class="badge">Cocos / TexturePacker XML plist</span>
+  </header>
+
+  <main class="layout">
+    <section class="panel">
+      <div class="panel-title">
+        <h2>① 解包图集</h2>
+        <p>上传 <b>.plist</b> 和对应 <b>.png 图集</b>，导出独立 PNG 图块 zip。</p>
+      </div>
+
+      <label class="dropzone" id="unpackDrop">
+        <input id="unpackFiles" type="file" multiple accept=".plist,.png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" />
+        <span>点击选择，或拖入 plist + 图集图片</span>
+      </label>
+
+      <div class="options">
+        <label><input id="unpackSourceSize" type="checkbox" checked /> 同时导出 sourceSize 还原透明留白版本</label>
+        <label><input id="unpackTrimmed" type="checkbox" checked /> 导出 trimmed 实际裁切版本</label>
+      </div>
+
+      <button class="primary" id="btnUnpack">解开并下载 ZIP</button>
+      <pre class="log" id="unpackLog">等待选择文件...</pre>
+      <div class="preview-grid" id="unpackPreview"></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-title">
+        <h2>② 打包图集</h2>
+        <p>选择一个图片文件夹，自动合成 atlas PNG，并生成 plist。</p>
+      </div>
+
+      <label class="dropzone" id="packDrop">
+        <input id="packFiles" type="file" multiple webkitdirectory directory accept="image/png,image/jpeg,image/webp" />
+        <span>点击选择图片文件夹，或拖入多张图片</span>
+      </label>
+      <div class="small-row">
+        <label class="ghost-upload">
+          <input id="packFilesLoose" type="file" multiple accept="image/png,image/jpeg,image/webp" />
+          也可以只选择多张图片
+        </label>
+      </div>
+
+      <div class="form-grid">
+        <label>图集名称
+          <input id="atlasName" value="atlas" />
+        </label>
+        <label>最大宽度
+          <select id="maxWidth">
+            <option>1024</option>
+            <option selected>2048</option>
+            <option>4096</option>
+          </select>
+        </label>
+        <label>最大高度
+          <select id="maxHeight">
+            <option>1024</option>
+            <option selected>2048</option>
+            <option>4096</option>
+          </select>
+        </label>
+        <label>间距 Padding
+          <input id="padding" type="number" min="0" value="2" />
+        </label>
+      </div>
+
+      <div class="options">
+        <label><input id="trimTransparent" type="checkbox" checked /> 自动裁掉透明边</label>
+        <label><input id="allowRotate" type="checkbox" /> 打包时允许旋转图块</label>
+        <label><input id="powerOfTwo" type="checkbox" checked /> 图集尺寸取 2 的幂</label>
+      </div>
+
+      <button class="primary" id="btnPack">打包并下载 ZIP</button>
+      <pre class="log" id="packLog">等待选择图片...</pre>
+      <div class="canvas-wrap" id="atlasPreviewWrap"></div>
+    </section>
+  </main>
+
+  <section class="notes">
+    <h2>使用说明</h2>
+    <ul>
+      <li>解包：选择 plist 和对应 png 大图，工具会根据 plist 的 frame / rotated / sourceSize / sourceColorRect 切出图片。</li>
+      <li>打包：选择一整个图片文件夹，工具会导出 <code>atlas_0.png</code>、<code>atlas_0.plist</code>；超出最大尺寸时会自动分页。</li>
+      <li>所有处理都在浏览器本地完成，不会上传素材。</li>
+    </ul>
+  </section>
+
+  <script src="./vendor/jszip.min.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
