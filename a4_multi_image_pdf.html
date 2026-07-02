@@ -35,17 +35,18 @@ button.secondary{background:#394052}.danger{background:#c73f3f!important}.mini{p
 .drop strong{display:block;font-size:18px;margin-bottom:8px}.drop span{color:var(--muted);font-size:14px}
 .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:16px}.toolbar .left{display:flex;gap:10px;flex-wrap:wrap}.toolbar button{width:auto;min-width:128px}
 .pages{display:flex;flex-direction:column;gap:24px;align-items:center}
-.pageWrap{display:flex;gap:14px;align-items:flex-start}.pageNum{min-width:72px;color:var(--muted);font-size:13px;padding-top:10px;text-align:right}
+.pageWrap{display:flex;gap:14px;align-items:flex-start;--zoom:1}.pageNum{min-width:72px;color:var(--muted);font-size:13px;padding-top:10px;text-align:right}
+.sheet{width:calc(210mm * var(--zoom));height:calc(297mm * var(--zoom));position:relative;flex:0 0 auto}
 .a4{width:210mm;height:297mm;background:var(--paper);position:relative;box-shadow:0 12px 45px rgba(0,0,0,.35);overflow:hidden;color:#111;display:grid;gap:0}
 .slot{position:relative;border:.15mm solid var(--line);overflow:hidden;background:#fafafa;display:flex;align-items:center;justify-content:center}
 .slot.empty::after{content:"空";font-size:11px;color:#bbb}.slot img{width:100%;height:100%;object-fit:cover;display:block;user-select:none;-webkit-user-drag:none}
 .bleed .slot::before{content:"";position:absolute;inset:2mm;border:.35mm dashed var(--danger);z-index:3;pointer-events:none}.bleed .slot::after{content:"";position:absolute;inset:0;border:.2mm solid rgba(255,0,0,.65);z-index:3;pointer-events:none}
 .thumbGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}.thumb{height:78px;border-radius:10px;overflow:hidden;position:relative;background:#111;border:1px solid #3d4356}.thumb img{width:100%;height:100%;object-fit:cover}.thumb b{position:absolute;left:5px;top:5px;background:rgba(0,0,0,.65);font-size:11px;border-radius:999px;padding:2px 6px}.thumb button{position:absolute;right:4px;top:4px;width:24px;height:24px;padding:0;border-radius:50%;background:rgba(200,45,45,.9);font-size:14px}
 .printOnly{display:none}
-@media(max-width:980px){.app{grid-template-columns:1fr}aside{position:static;height:auto}.a4{transform-origin:top center;max-width:100%;height:auto;aspect-ratio:210/297}.pageWrap{flex-direction:column}.pageNum{text-align:left}}
+@media(max-width:980px){.app{grid-template-columns:1fr}aside{position:static;height:auto}.pageWrap{flex-direction:column}.pageNum{text-align:left}}
 @page{size:A4 portrait;margin:0}
 @media print{
-  html,body{width:210mm!important;height:297mm!important;margin:0!important;padding:0!important;background:#fff!important;overflow:visible!important}
+  html,body{width:210mm!important;min-height:297mm!important;height:auto!important;margin:0!important;padding:0!important;background:#fff!important;overflow:visible!important}
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
   .app{display:block!important;width:210mm!important;margin:0!important;padding:0!important}
   aside,.drop,.toolbar,.pageNum{display:none!important}
@@ -53,6 +54,7 @@ button.secondary{background:#394052}.danger{background:#c73f3f!important}.mini{p
   .pages{display:block!important;width:210mm!important;margin:0!important;padding:0!important;gap:0!important;align-items:stretch!important}
   .pageWrap{display:block!important;width:210mm!important;height:297mm!important;margin:0!important;padding:0!important;break-after:page;page-break-after:always;overflow:hidden!important}
   .pageWrap:last-child{break-after:auto;page-break-after:auto}
+  .sheet{display:block!important;width:210mm!important;height:297mm!important;max-width:none!important;aspect-ratio:auto!important;margin:0!important;padding:0!important;overflow:hidden!important}
   .a4{width:210mm!important;height:297mm!important;max-width:none!important;aspect-ratio:auto!important;box-shadow:none!important;margin:0!important;padding:0!important;transform:none!important;break-inside:avoid!important;page-break-inside:avoid!important;overflow:hidden!important}
   .slot{border:.12mm solid #ddd}
   .bleed .slot::before{border-color:red}
@@ -88,7 +90,7 @@ button.secondary{background:#394052}.danger{background:#c73f3f!important}.mini{p
     <div class="panel stats" id="stats">未上传图片</div>
 
     <div class="panel">
-      <button onclick="window.print()">打印 / 保存为 PDF</button>
+      <button id="printBtn">打印 / 保存为 PDF</button>
       <div style="height:10px"></div>
       <button class="secondary" id="clearBtn">清空图片</button>
     </div>
@@ -154,15 +156,18 @@ function render(){
   for(let p=0;p<pageCount;p++){
     const wrap = document.createElement('div');
     wrap.className = 'pageWrap';
+    wrap.style.setProperty('--zoom', $('zoom').value);
     const num = document.createElement('div');
     num.className = 'pageNum';
     num.textContent = `第 ${p+1} / ${pageCount} 页`;
+    const sheet = document.createElement('div');
+    sheet.className = 'sheet';
     const page = document.createElement('div');
     page.className = 'a4' + ($('showBleed').checked ? ' bleed' : '');
     page.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
     page.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
     page.style.transform = `scale(${$('zoom').value})`;
-    page.style.marginBottom = `calc(297mm * ${parseFloat($('zoom').value)-1})`;
+    page.style.transformOrigin = 'top left';
 
     for(let i=0;i<perPage;i++){
       const item = list[p*perPage+i];
@@ -175,7 +180,8 @@ function render(){
       }
       page.appendChild(slot);
     }
-    wrap.appendChild(num); wrap.appendChild(page); pages.appendChild(wrap);
+    sheet.appendChild(page);
+    wrap.appendChild(num); wrap.appendChild(sheet); pages.appendChild(wrap);
   }
   renderThumbs();
   $('stats').innerHTML = `原始图片：<b>${images.length}</b> 张<br>每张份数：<b>${Math.max(1, parseInt($('copies').value||1,10))}</b><br>A4 单页：<b>${cols} × ${rows} = ${perPage}</b> 张<br>总排版：<b>${list.length}</b> 张，<b>${pageCount}</b> 页`;
@@ -193,6 +199,17 @@ function renderThumbs(){
 
 $('fileInput').addEventListener('change', e => readFiles(e.target.files));
 ['cols','rows','copies','zoom','showBleed'].forEach(id => $(id).addEventListener('input', render));
+$('printBtn').onclick = async () => {
+  await Promise.all([...document.images].map(img => {
+    if(img.complete) return Promise.resolve();
+    if(img.decode) return img.decode().catch(() => {});
+    return new Promise(resolve => {
+      img.addEventListener('load', resolve, {once:true});
+      img.addEventListener('error', resolve, {once:true});
+    });
+  }));
+  window.print();
+};
 $('clearBtn').onclick = () => { images=[]; $('fileInput').value=''; render(); };
 $('fitBtn').onclick = () => { $('zoom').value='0.45'; render(); };
 $('actualBtn').onclick = () => { $('zoom').value='1'; render(); };
