@@ -87,6 +87,21 @@
       <pre class="log" id="packLog">等待选择图片...</pre>
       <div class="canvas-wrap" id="atlasPreviewWrap"></div>
     </section>
+    <section class="panel">
+      <div class="panel-title">
+        <h2>3. Spine atlas 切图</h2>
+        <p>选择 <b>.atlas</b> 和对应 <b>.png 图集</b>，导出独立 PNG 图块 zip。</p>
+      </div>
+
+      <label class="dropzone" id="spineDrop">
+        <input id="spineFiles" type="file" multiple accept=".atlas,.png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" />
+        <span>点击选择，或拖入 Spine .atlas + 图集图片</span>
+      </label>
+
+      <button class="primary" id="btnSpine">切出 Spine 图片 ZIP</button>
+      <pre class="log" id="spineLog">等待选择 Spine atlas 文件...</pre>
+      <div class="preview-grid" id="spinePreview"></div>
+    </section>
   </main>
 
   <section class="notes">

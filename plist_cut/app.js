@@ -4,6 +4,7 @@ const $ = (id) => document.getElementById(id);
 const state = {
   unpackFiles: [],
   packFiles: [],
+  spineFiles: [],
 };
 
 function log(el, text) {
@@ -18,6 +19,40 @@ function safeFileName(name) {
   const base = String(name || 'sprite.png').split(/[\\/]/).pop() || 'sprite.png';
   const cleaned = base.replace(/[<>:"/\\|?*\x00-\x1F]/g, '_');
   return cleaned.toLowerCase().endsWith('.png') ? cleaned : `${cleaned}.png`;
+}
+
+function safeZipPngPath(name) {
+  const parts = String(name || 'sprite.png')
+    .split(/[\\/]+/)
+    .map((part) => part.replace(/[<>:"|?*\x00-\x1F]/g, '_').trim())
+    .filter(Boolean);
+  if (!parts.length) parts.push('sprite.png');
+  const last = parts[parts.length - 1];
+  parts[parts.length - 1] = last.toLowerCase().endsWith('.png') ? last : `${last}.png`;
+  return parts.join('/');
+}
+
+function uniqueZipPngPath(name, used) {
+  const path = safeZipPngPath(name);
+  if (!used.has(path)) {
+    used.add(path);
+    return path;
+  }
+
+  const slash = path.lastIndexOf('/');
+  const dir = slash >= 0 ? `${path.slice(0, slash + 1)}` : '';
+  const file = slash >= 0 ? path.slice(slash + 1) : path;
+  const dot = file.lastIndexOf('.');
+  const stem = dot >= 0 ? file.slice(0, dot) : file;
+  const ext = dot >= 0 ? file.slice(dot) : '.png';
+  let i = 2;
+  let candidate = `${dir}${stem}_${i}${ext}`;
+  while (used.has(candidate)) {
+    i += 1;
+    candidate = `${dir}${stem}_${i}${ext}`;
+  }
+  used.add(candidate);
+  return candidate;
 }
 
 function uniqueName(name, used) {
@@ -167,29 +202,31 @@ function getFrameInfo(info) {
   const rect = parseRect(info.frame || info.textureRect || info.textureRectInPixels || info.spriteFrame);
   if (!rect) throw new Error('frame / textureRect 字段无法解析。');
   const rotated = Boolean(info.rotated ?? info.textureRotated ?? info.isRotated ?? false);
-  const sourceSize = parseSize(info.sourceSize || info.spriteSourceSize || info.spriteSize, { w: rect.w, h: rect.h });
-  const sourceColorRect = parseRect(info.sourceColorRect || info.sourceColorRectInPixels || info.spriteSourceColorRect) || {
-    x: 0,
-    y: 0,
-    w: rect.w,
-    h: rect.h,
-  };
   const offset = parsePoint(info.offset || info.spriteOffset || info.spriteOffsetInPixels, { x: 0, y: 0 });
+  const sourceSize = parseSize(info.sourceSize || info.spriteSourceSize || info.spriteSize, { w: rect.w, h: rect.h });
+  const spriteSize = parseSize(info.spriteSize, { w: rect.w, h: rect.h });
+  const trimmedSize = rotated ? { w: spriteSize.w, h: spriteSize.h } : { w: rect.w, h: rect.h };
+  const sourceColorRect = parseRect(info.sourceColorRect || info.sourceColorRectInPixels || info.spriteSourceColorRect) || {
+    x: offset.x + sourceSize.w / 2 - trimmedSize.w / 2,
+    y: sourceSize.h / 2 - offset.y - trimmedSize.h / 2,
+    w: trimmedSize.w,
+    h: trimmedSize.h,
+  };
   return { rect, rotated, sourceSize, sourceColorRect, offset };
 }
 
 function drawUnrotatedCrop(atlasImg, frame) {
   const { rect, rotated } = frame;
   const canvas = document.createElement('canvas');
-  canvas.width = Math.max(1, Math.round(rect.w));
-  canvas.height = Math.max(1, Math.round(rect.h));
+  canvas.width = Math.max(1, Math.round(rotated ? rect.h : rect.w));
+  canvas.height = Math.max(1, Math.round(rotated ? rect.w : rect.h));
   const ctx = canvas.getContext('2d');
   ctx.imageSmoothingEnabled = false;
   if (rotated) {
     // TexturePacker/Cocos convention: packed rect is h*w; rotate back CCW.
-    ctx.translate(0, rect.h);
+    ctx.translate(0, rect.w);
     ctx.rotate(-Math.PI / 2);
-    ctx.drawImage(atlasImg, rect.x, rect.y, rect.h, rect.w, 0, 0, rect.h, rect.w);
+    ctx.drawImage(atlasImg, rect.x, rect.y, rect.w, rect.h, 0, 0, rect.w, rect.h);
   } else {
     ctx.drawImage(atlasImg, rect.x, rect.y, rect.w, rect.h, 0, 0, rect.w, rect.h);
   }
@@ -206,6 +243,108 @@ function makeSourceSizeCanvas(trimmedCanvas, frame) {
   ctx.imageSmoothingEnabled = false;
   const x = Math.round(frame.sourceColorRect.x || 0);
   const y = Math.round(frame.sourceColorRect.y || 0);
+  ctx.drawImage(trimmedCanvas, x, y);
+  return canvas;
+}
+
+function parseSpinePair(value, fallback = { x: 0, y: 0 }) {
+  const nums = intsFromString(value);
+  return nums.length >= 2 ? { x: nums[0], y: nums[1] } : fallback;
+}
+
+function parseSpineAtlas(text) {
+  const lines = String(text || '').replace(/\r/g, '').split('\n');
+  const pages = [];
+  let page = null;
+  let region = null;
+
+  function commitRegion() {
+    if (page && region) {
+      const size = region.size || { x: 0, y: 0 };
+      const orig = region.orig || size;
+      const offset = region.offset || { x: 0, y: 0 };
+      const xy = region.xy || { x: 0, y: 0 };
+      page.regions.push({
+        name: region.name,
+        rotate: region.rotate === true,
+        x: xy.x,
+        y: xy.y,
+        w: size.x,
+        h: size.y,
+        origW: orig.x,
+        origH: orig.y,
+        offsetX: offset.x,
+        offsetY: offset.y,
+        index: Number.isFinite(region.index) ? region.index : -1,
+      });
+    }
+    region = null;
+  }
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) {
+      commitRegion();
+      page = null;
+      continue;
+    }
+
+    const colon = line.indexOf(':');
+    if (colon < 0) {
+      if (!page) {
+        page = { imageName: line, regions: [] };
+        pages.push(page);
+      } else {
+        commitRegion();
+        region = { name: line };
+      }
+      continue;
+    }
+
+    const key = line.slice(0, colon).trim();
+    const value = line.slice(colon + 1).trim();
+    if (region) {
+      if (key === 'rotate') region.rotate = value === 'true' || value === '90';
+      else if (key === 'xy') region.xy = parseSpinePair(value);
+      else if (key === 'size') region.size = parseSpinePair(value);
+      else if (key === 'orig') region.orig = parseSpinePair(value);
+      else if (key === 'offset') region.offset = parseSpinePair(value);
+      else if (key === 'index') region.index = Number(value);
+    } else if (page) {
+      page[key] = value;
+    }
+  }
+  commitRegion();
+
+  const regions = pages.flatMap((atlasPage) => atlasPage.regions.map((item) => ({ ...item, page: atlasPage })));
+  if (!regions.length) throw new Error('atlas 中没有找到 Spine 图片区域。');
+  return { pages, regions };
+}
+
+function drawSpineRegion(atlasImg, region) {
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(region.w));
+  canvas.height = Math.max(1, Math.round(region.h));
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  if (region.rotate) {
+    ctx.translate(0, region.h);
+    ctx.rotate(-Math.PI / 2);
+    ctx.drawImage(atlasImg, region.x, region.y, region.h, region.w, 0, 0, region.h, region.w);
+  } else {
+    ctx.drawImage(atlasImg, region.x, region.y, region.w, region.h, 0, 0, region.w, region.h);
+  }
+  return canvas;
+}
+
+function makeSpineOriginalCanvas(trimmedCanvas, region) {
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(region.origW));
+  canvas.height = Math.max(1, Math.round(region.origH));
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  const x = Math.round(region.offsetX || 0);
+  const y = Math.round(region.origH - region.h - (region.offsetY || 0));
   ctx.drawImage(trimmedCanvas, x, y);
   return canvas;
 }
@@ -292,6 +431,78 @@ async function unpackAtlas() {
   const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 9 } });
   downloadBlob(blob, `${plistFile.name.replace(/\.plist$/i, '')}_sliced_blocks.zip`);
   log(logEl, `完成：切出 ${frameEntries.length} 个图块，修正旋转 ${rotatedCount} 个。`);
+}
+
+async function unpackSpineAtlas() {
+  const logEl = $('spineLog');
+  const files = state.spineFiles.length ? state.spineFiles : [...$('spineFiles').files];
+  const atlasFile = files.find((f) => f.name.toLowerCase().endsWith('.atlas'));
+  const imageFiles = files.filter((f) => /\.(png|jpg|jpeg|webp)$/i.test(f.name));
+  if (!atlasFile || !imageFiles.length) {
+    log(logEl, 'Please choose a .atlas file and its atlas image.');
+    return;
+  }
+
+  log(logEl, 'Reading Spine atlas...');
+  const atlas = parseSpineAtlas(await readText(atlasFile));
+  const imageMap = new Map(imageFiles.map((file) => [file.name, file]));
+  const pageImages = new Map();
+  for (const page of atlas.pages) {
+    const imageFile = imageMap.get(page.imageName) || (atlas.pages.length === 1 ? imageFiles[0] : null);
+    if (!imageFile) throw new Error(`Missing atlas page image: ${page.imageName}`);
+    pageImages.set(page.imageName, await fileToImage(imageFile));
+  }
+
+  const zip = new JSZip();
+  const used = new Set();
+  const rows = [];
+  let rotatedCount = 0;
+  $('spinePreview').innerHTML = '';
+  appendLog(logEl, `Regions: ${atlas.regions.length}`);
+
+  for (let i = 0; i < atlas.regions.length; i += 1) {
+    const region = atlas.regions[i];
+    const atlasImg = pageImages.get(region.page.imageName);
+    const name = uniqueZipPngPath(region.name, used);
+    if (region.rotate) rotatedCount += 1;
+    const trimmed = drawSpineRegion(atlasImg, region);
+    const original = makeSpineOriginalCanvas(trimmed, region);
+    const trimmedBlob = await canvasToBlob(trimmed);
+    const originalBlob = await canvasToBlob(original);
+    zip.file(`01_trimmed_png_blocks/${name}`, trimmedBlob);
+    zip.file(`02_original_size_png_blocks/${name}`, originalBlob);
+    rows.push(`${name} | trimmed ${trimmed.width}x${trimmed.height} | original ${original.width}x${original.height} | rotated ${region.rotate}`);
+
+    if (i < 24) {
+      const card = document.createElement('div');
+      card.className = 'preview-card';
+      const img = document.createElement('img');
+      img.src = trimmed.toDataURL('image/png');
+      const cap = document.createElement('div');
+      cap.textContent = name;
+      card.append(img, cap);
+      $('spinePreview').appendChild(card);
+    }
+  }
+
+  zip.file('README.txt', [
+    'Spine atlas sliced result',
+    '=========================',
+    `atlas: ${atlasFile.name}`,
+    `pages: ${atlas.pages.length}`,
+    `regions: ${atlas.regions.length}`,
+    `rotated fixed: ${rotatedCount}`,
+    '',
+    '01_trimmed_png_blocks: packed region cropped from atlas, rotated back when needed.',
+    '02_original_size_png_blocks: restored to orig/offset transparent canvas.',
+    '',
+    ...rows,
+  ].join('\n'));
+
+  log(logEl, `Compressing ${atlas.regions.length} regions...`);
+  const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 9 } });
+  downloadBlob(blob, `${atlasFile.name.replace(/\.atlas$/i, '')}_spine_sliced_blocks.zip`);
+  log(logEl, `Done: sliced ${atlas.regions.length} regions, fixed ${rotatedCount} rotated regions.`);
 }
 
 function imageToCanvas(img) {
@@ -454,7 +665,7 @@ function escXml(text) {
 function plistString(page, textureFileName, canvas) {
   const lines = [];
   lines.push('<?xml version="1.0" encoding="UTF-8"?>');
-  lines.push('<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">');
+  lines.push('<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">');
   lines.push('<plist version="1.0">');
   lines.push('<dict>');
   lines.push('  <key>frames</key>');
@@ -462,6 +673,8 @@ function plistString(page, textureFileName, canvas) {
   for (const sprite of page.sprites) {
     const w = sprite.canvas.width;
     const h = sprite.canvas.height;
+    const packedW = sprite.rotated ? h : w;
+    const packedH = sprite.rotated ? w : h;
     const scr = sprite.sourceColorRect;
     const ss = sprite.sourceSize;
     lines.push(`    <key>${escXml(sprite.name)}</key>`);
@@ -470,11 +683,13 @@ function plistString(page, textureFileName, canvas) {
     const offsetY = ss.h / 2 - scr.y - h / 2;
     const ox = Number.isInteger(offsetX) ? offsetX : Number(offsetX.toFixed(2));
     const oy = Number.isInteger(offsetY) ? offsetY : Number(offsetY.toFixed(2));
-    lines.push(`      <key>frame</key><string>{{${sprite.x},${sprite.y}},{${w},${h}}}</string>`);
-    lines.push(`      <key>offset</key><string>{${ox},${oy}}</string>`);
-    lines.push(`      <key>rotated</key><${sprite.rotated ? 'true' : 'false'}/>`);
-    lines.push(`      <key>sourceColorRect</key><string>{{${scr.x},${scr.y}},{${scr.w},${scr.h}}}</string>`);
-    lines.push(`      <key>sourceSize</key><string>{${ss.w},${ss.h}}</string>`);
+    lines.push('      <key>aliases</key>');
+    lines.push('      <array/>');
+    lines.push(`      <key>spriteOffset</key><string>{${ox},${oy}}</string>`);
+    lines.push(`      <key>spriteSize</key><string>{${w},${h}}</string>`);
+    lines.push(`      <key>spriteSourceSize</key><string>{${ss.w},${ss.h}}</string>`);
+    lines.push(`      <key>textureRect</key><string>{{${sprite.x},${sprite.y}},{${packedW},${packedH}}}</string>`);
+    lines.push(`      <key>textureRotated</key><${sprite.rotated ? 'true' : 'false'}/>`);
     lines.push('    </dict>');
   }
   lines.push('  </dict>');
@@ -529,8 +744,9 @@ async function packAtlas() {
   for (let i = 0; i < pages.length; i += 1) {
     const page = pages[i];
     const canvas = drawPageCanvas(page, opts);
-    const imageName = `${opts.name}_${i}.png`;
-    const plistName = `${opts.name}_${i}.plist`;
+    const fileBase = pages.length === 1 ? opts.name : `${opts.name}_${i}`;
+    const imageName = `${fileBase}.png`;
+    const plistName = `${fileBase}.plist`;
     const pngBlob = await canvasToBlob(canvas);
     zip.file(imageName, pngBlob);
     zip.file(plistName, plistString(page, imageName, canvas));
@@ -571,6 +787,10 @@ function setupDrop(dropId, inputId, stateKey, acceptFn) {
   const input = $(inputId);
   input.addEventListener('change', () => {
     state[stateKey] = [...input.files].filter(acceptFn);
+    const names = state[stateKey].slice(0, 8).map((f) => f.name).join(', ');
+    if (stateKey === 'unpackFiles') log($('unpackLog'), `Selected ${state[stateKey].length} files: ${names}`);
+    if (stateKey === 'packFiles') log($('packLog'), `Selected ${state[stateKey].length} files: ${names}`);
+    if (stateKey === 'spineFiles') log($('spineLog'), `Selected ${state[stateKey].length} files: ${names}`);
   });
   drop.addEventListener('dragover', (e) => {
     e.preventDefault();
@@ -582,6 +802,7 @@ function setupDrop(dropId, inputId, stateKey, acceptFn) {
     drop.classList.remove('dragover');
     state[stateKey] = [...e.dataTransfer.files].filter(acceptFn);
     const names = state[stateKey].slice(0, 8).map((f) => f.name).join(', ');
+    if (stateKey === 'spineFiles') log($('spineLog'), `Selected ${state[stateKey].length} files: ${names}`);
     if (stateKey === 'unpackFiles') log($('unpackLog'), `已选择 ${state[stateKey].length} 个文件：${names}`);
     if (stateKey === 'packFiles') log($('packLog'), `已选择 ${state[stateKey].length} 个文件：${names}`);
   });
@@ -589,9 +810,11 @@ function setupDrop(dropId, inputId, stateKey, acceptFn) {
 
 $('btnUnpack').addEventListener('click', () => unpackAtlas().catch((err) => log($('unpackLog'), `错误：${err.message}`)));
 $('btnPack').addEventListener('click', () => packAtlas().catch((err) => log($('packLog'), `错误：${err.message}`)));
+$('btnSpine').addEventListener('click', () => unpackSpineAtlas().catch((err) => log($('spineLog'), `Error: ${err.message}`)));
 $('packFilesLoose').addEventListener('change', () => {
   state.packFiles = [...$('packFilesLoose').files];
   log($('packLog'), `已选择 ${state.packFiles.length} 张图片。`);
 });
 setupDrop('unpackDrop', 'unpackFiles', 'unpackFiles', (f) => /\.(plist|png|jpg|jpeg|webp)$/i.test(f.name));
 setupDrop('packDrop', 'packFiles', 'packFiles', (f) => /\.(png|jpg|jpeg|webp)$/i.test(f.name));
+setupDrop('spineDrop', 'spineFiles', 'spineFiles', (f) => /\.(atlas|png|jpg|jpeg|webp)$/i.test(f.name));
