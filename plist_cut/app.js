@@ -328,8 +328,11 @@ function drawSpineRegion(atlasImg, region) {
   const ctx = canvas.getContext('2d');
   ctx.imageSmoothingEnabled = false;
   if (region.rotate) {
-    ctx.translate(0, region.h);
-    ctx.rotate(-Math.PI / 2);
+    // Spine atlases store rotated regions (90deg). Rotate the packed region back.
+    // Use translate + rotate in the canonical orientation so the result is upright.
+    // Source rectangle in atlas is stored as (x, y, h, w) when rotated.
+    ctx.translate(canvas.width, 0);
+    ctx.rotate(Math.PI / 2);
     ctx.drawImage(atlasImg, region.x, region.y, region.h, region.w, 0, 0, region.h, region.w);
   } else {
     ctx.drawImage(atlasImg, region.x, region.y, region.w, region.h, 0, 0, region.w, region.h);
@@ -343,9 +346,16 @@ function makeSpineOriginalCanvas(trimmedCanvas, region) {
   canvas.height = Math.max(1, Math.round(region.origH));
   const ctx = canvas.getContext('2d');
   ctx.imageSmoothingEnabled = false;
-  const x = Math.round(region.offsetX || 0);
-  const y = Math.round(region.origH - region.h - (region.offsetY || 0));
-  ctx.drawImage(trimmedCanvas, x, y);
+  // For rotated regions, offsets swap and placement must account for swapped axes.
+  if (region.rotate) {
+    const x = Math.round(region.offsetY || 0);
+    const y = Math.round(region.origH - region.w - (region.offsetX || 0));
+    ctx.drawImage(trimmedCanvas, x, y);
+  } else {
+    const x = Math.round(region.offsetX || 0);
+    const y = Math.round(region.origH - region.h - (region.offsetY || 0));
+    ctx.drawImage(trimmedCanvas, x, y);
+  }
   return canvas;
 }
 
