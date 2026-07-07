@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>HAR 页面数据提取工具</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="workspace">
+        <aside class="sidebar" aria-label="导入与导出">
+          <div class="brand">
+            <div class="brand-mark" aria-hidden="true">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <div>
+              <h1>HAR 提取器</h1>
+              <p>页面数据整理</p>
+            </div>
+          </div>
+
+          <label class="drop-zone" for="harFile" id="dropZone">
+            <input id="harFile" type="file" accept=".har,application/json">
+            <span class="drop-icon" aria-hidden="true">+</span>
+            <strong>选择 HAR 文件</strong>
+            <small id="fileMeta">等待导入</small>
+          </label>
+
+          <div class="panel">
+            <h2>输出字段</h2>
+            <label class="check-row">
+              <input type="checkbox" id="includeHeaders" checked>
+              <span>Headers</span>
+            </label>
+            <label class="check-row">
+              <input type="checkbox" id="includeCookies">
+              <span>Cookies</span>
+            </label>
+            <label class="check-row">
+              <input type="checkbox" id="includePayload" checked>
+              <span>请求体</span>
+            </label>
+            <label class="check-row">
+              <input type="checkbox" id="includeBody">
+              <span>响应正文</span>
+            </label>
+          </div>
+
+          <div class="panel">
+            <h2>导出格式</h2>
+            <div class="segmented" role="radiogroup" aria-label="导出格式">
+              <label>
+                <input type="radio" name="format" value="json" checked>
+                <span>JSON</span>
+              </label>
+              <label>
+                <input type="radio" name="format" value="csv">
+                <span>CSV</span>
+              </label>
+            </div>
+            <button class="primary-btn" id="downloadBtn" type="button" disabled>
+              <span aria-hidden="true">↓</span>
+              下载输出文件
+            </button>
+            <button class="secondary-btn" id="downloadAssetsBtn" type="button" disabled>
+              <span aria-hidden="true">▣</span>
+              下载图片和脚本 ZIP
+            </button>
+          </div>
+        </aside>
+
+        <section class="content">
+          <header class="topbar">
+            <div>
+              <p class="eyebrow">Local HAR Parser</p>
+              <h2 id="resultTitle">导入文件后开始提取</h2>
+            </div>
+            <div class="toolbar">
+              <input id="searchInput" type="search" placeholder="搜索 URL、标题、状态码" disabled>
+              <select id="typeFilter" disabled aria-label="资源类型">
+                <option value="all">全部类型</option>
+                <option value="document">Document</option>
+                <option value="xhr">XHR / JSON</option>
+                <option value="script">Script</option>
+                <option value="style">Style</option>
+                <option value="image">Image</option>
+                <option value="media">Media</option>
+                <option value="font">Font</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          </header>
+
+          <section class="stats-grid" aria-label="统计">
+            <article>
+              <span>页面</span>
+              <strong id="pageCount">0</strong>
+            </article>
+            <article>
+              <span>请求</span>
+              <strong id="entryCount">0</strong>
+            </article>
+            <article>
+              <span>成功率</span>
+              <strong id="successRate">0%</strong>
+            </article>
+            <article>
+              <span>传输</span>
+              <strong id="totalSize">0 KB</strong>
+            </article>
+          </section>
+
+          <section class="preview-panel">
+            <div class="preview-head">
+              <div>
+                <h2>提取预览</h2>
+                <p id="previewMeta">暂无数据</p>
+              </div>
+              <button class="ghost-btn" id="copyBtn" type="button" disabled>
+                <span aria-hidden="true">⧉</span>
+                复制 JSON
+              </button>
+            </div>
+
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>类型</th>
+                    <th>方法</th>
+                    <th>状态</th>
+                    <th>页面 / URL</th>
+                    <th>MIME</th>
+                    <th>耗时</th>
+                    <th>大小</th>
+                  </tr>
+                </thead>
+                <tbody id="previewBody">
+                  <tr class="empty-row">
+                    <td colspan="7">请选择一个 HAR 文件</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+      </section>
+    </main>
+
+    <template id="rowTemplate">
+      <tr>
+        <td><span class="type-pill"></span></td>
+        <td class="method"></td>
+        <td><span class="status-pill"></span></td>
+        <td>
+          <div class="url-cell">
+            <strong></strong>
+            <span></span>
+          </div>
+        </td>
+        <td class="mime"></td>
+        <td class="time"></td>
+        <td class="size"></td>
+      </tr>
+    </template>
+
+    <script src="app.js"></script>
+  </body>
+</html>
