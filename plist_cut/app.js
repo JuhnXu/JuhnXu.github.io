@@ -217,16 +217,37 @@ function getFrameInfo(info) {
 
 function drawUnrotatedCrop(atlasImg, frame) {
   const { rect, rotated } = frame;
+  // 先创建画布
   const canvas = document.createElement('canvas');
-  canvas.width = Math.max(1, Math.round(rotated ? rect.h : rect.w));
-  canvas.height = Math.max(1, Math.round(rotated ? rect.w : rect.h));
+  canvas.width = Math.max(1, Math.round(rect.w));
+  canvas.height = Math.max(1, Math.round(rect.h));
+  // plist 里的rect是固定的，不会因为rotated变化而对调，所以下面AI的写法是错的
+  // canvas.width = Math.max(1, Math.round(rotated ? rect.h : rect.w));
+  // canvas.height = Math.max(1, Math.round(rotated ? rect.w : rect.h));
   const ctx = canvas.getContext('2d');
   ctx.imageSmoothingEnabled = false;
   if (rotated) {
-    // TexturePacker/Cocos convention: packed rect is h*w; rotate back CCW.
-    ctx.translate(0, rect.w);
+    // Packed region is rotated 90°. Rotate the packed region back to upright.
+    // Use translate+rotate so the resulting canvas is upright with proper dimensions.
+    // Note: when rotated, swap source width/height when drawing from atlas.
+    // 绘图原点初始位置在左上角（0,0）位置，x轴方向从左往右，y轴方向从上往下
+    /**                 X轴 →
+    (0,0) ┌────────────────────┐
+          │                    │
+      Y轴 │                    │
+        ↓ │        Canvas      │
+          │                    │
+          │                    │
+          └────────────────────┘
+    */                       
+    //把绘图原点移动到canvas正确的地方，即左下角
+    ctx.translate(0, canvas.height);
+    // 逆时针旋转90度，将绘图方向旋转
     ctx.rotate(-Math.PI / 2);
-    ctx.drawImage(atlasImg, rect.x, rect.y, rect.w, rect.h, 0, 0, rect.w, rect.h);
+    ctx.drawImage(atlasImg, rect.x, rect.y, rect.h, rect.w, 0, 0, rect.h, rect.w);
+
+    // 绘制原canvas
+    // ctx.drawImage(sourceCanvas, 0, 0);
   } else {
     ctx.drawImage(atlasImg, rect.x, rect.y, rect.w, rect.h, 0, 0, rect.w, rect.h);
   }
