@@ -190,7 +190,7 @@ const MIME_EXT={
 const TYPE_DEFAULT_EXT={
 FaceURL:'.png',BackURL:'.png',ImageURL:'.png',ImageSecondaryURL:'.png',
 DiffuseURL:'.png',NormalURL:'.png',MeshURL:'.obj',ColliderURL:'.obj',
-PDFUrl:'.pdf',MusicURL:'.mp3',SoundURL:'.mp3',AssetBundleURL:'.unity3d',AssetbundleURL:'.unity3d'
+PDFUrl:'.pdf',MusicURL:'.mp3',SoundURL:'.mp3',AssetBundleURL:'.unity3d',AssetbundleURL:'.unity3d',AssetbundleSecondaryURL:'.unity3d',CurrentAudioURL:'.mp3'
 };
 function replaceExt(name,ext){
  const i=name.lastIndexOf('.');
@@ -247,8 +247,9 @@ async function downloadZip(){
       const mode=document.querySelector('input[name="mode"]:checked').value;
       let saveName=mode==='flat'?flatFileName(a):a.path;
       const ct=(res.headers.get('content-type')||'').split(';')[0].trim().toLowerCase();
-      let ext=MIME_EXT[ct];
-      if(!ext) ext=TYPE_DEFAULT_EXT[a.type];
+      let ext=TYPE_DEFAULT_EXT[a.type];
+      if(!ext) ext=extFromUrl(a.url);
+      if(!ext) ext=MIME_EXT[ct];
       if(ext) saveName=replaceExt(saveName,ext);
       a.contentType=ct; a.filename=saveName; a.size=blob.size;
       a.filename=saveName;
