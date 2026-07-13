@@ -59,3 +59,16 @@ document.getElementById('save').onclick=()=>{
 };
 
 document.getElementById("onlyLua").onchange=render;
+
+
+document.getElementById('exportXml').onclick=()=>{
+ if(!data){alert('请先打开JSON');return;}
+ const xml=data.XmlUI||data.XmlUIData||data.UIXml||data.Xml||"";
+ if(!xml){alert('未找到XML UI');return;}
+ const blob=new Blob([xml],{type:'application/xml'});
+ const a=document.createElement('a');
+ a.href=URL.createObjectURL(blob);
+ a.download='UI.xml';
+ a.click();
+ URL.revokeObjectURL(a.href);
+};
