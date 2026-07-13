@@ -17,7 +17,12 @@
   <div class="card">
     <label>选择 JSON 文件</label>
     <input id="fileInput" type="file" accept=".json,application/json" multiple />
-    <label>输出 zip 文件名</label>
+    <label>下载模式</label>
+<div style="display:flex;gap:8px;margin-bottom:10px">
+<label style="flex:1"><input type="radio" name="mode" value="tree" checked> 保留目录</label>
+<label style="flex:1"><input type="radio" name="mode" value="flat"> 扁平目录</label>
+</div>
+<label>输出 zip 文件名</label>
     <input id="zipName" type="text" value="tts_assets.zip" />
     <div class="stats">
       <div class="stat"><b id="jsonCount">0</b><span>JSON</span></div>
@@ -173,6 +178,53 @@ async function scan(){
   manifestBtn.disabled = assets.length === 0;
   log(`共找到 ${assets.length} 个唯一资源链接`);
 }
+
+
+const MIME_EXT={
+'image/png':'.png','image/jpeg':'.jpg','image/jpg':'.jpg','image/webp':'.webp','image/gif':'.gif','image/bmp':'.bmp','image/svg+xml':'.svg',
+'audio/mpeg':'.mp3','audio/mp3':'.mp3','audio/wav':'.wav','audio/ogg':'.ogg',
+'video/mp4':'.mp4',
+'application/pdf':'.pdf',
+'model/gltf+json':'.gltf','model/gltf-binary':'.glb'
+};
+const TYPE_DEFAULT_EXT={
+FaceURL:'.png',BackURL:'.png',ImageURL:'.png',ImageSecondaryURL:'.png',
+DiffuseURL:'.png',NormalURL:'.png',MeshURL:'.obj',ColliderURL:'.obj',
+PDFUrl:'.pdf',MusicURL:'.mp3',SoundURL:'.mp3',AssetBundleURL:'.unity3d',AssetbundleURL:'.unity3d'
+};
+function replaceExt(name,ext){
+ const i=name.lastIndexOf('.');
+ return i>0?name.substring(0,i)+ext:name+ext;
+}
+
+function uniqueFlatName(name){
+  window.__usedFlatNames = window.__usedFlatNames || {};
+  const map = window.__usedFlatNames;
+  if(!map[name]){
+    map[name]=1;
+    return name;
+  }
+  const p=name.lastIndexOf(".");
+  const base=p>=0?name.substring(0,p):name;
+  const ext=p>=0?name.substring(p):"";
+  let i=map[name];
+  while(map[`${base}(${i})${ext}`]) i++;
+  const n=`${base}(${i})${ext}`;
+  map[name]=i+1;
+  map[n]=1;
+  return n;
+}
+function flatFileName(asset){
+  try{
+    const u=new URL(asset.url);
+    let n=decodeURIComponent(u.pathname.split("/").pop());
+    if(!n) n=asset.type+extFromUrl(asset.url);
+    return uniqueFlatName(n);
+  }catch(e){
+    return uniqueFlatName(asset.type+extFromUrl(asset.url));
+  }
+}
+
 async function downloadZip(){
   if(!assets.length) return;
   if(typeof JSZip === 'undefined'){
@@ -181,7 +233,8 @@ async function downloadZip(){
   }
   scanBtn.disabled = downloadBtn.disabled = manifestBtn.disabled = true;
   const zip = new JSZip();
-  zip.file('manifest.json', JSON.stringify(assets.map(({type,path,url})=>({type,path,url})), null, 2));
+  window.__usedFlatNames={};
+  zip.file('manifest.json', JSON.stringify(assets.map(({type,path,url,filename,contentType,size})=>({type,path,url,filename,contentType,size})), null, 2));
   let ok = 0, fail = 0;
   for(let i=0;i<assets.length;i++){
     const a = assets[i];
@@ -191,7 +244,15 @@ async function downloadZip(){
       const res = await fetch(a.url);
       if(!res.ok) throw new Error(`HTTP ${res.status}`);
       const blob = await res.blob();
-      zip.file(a.path, blob);
+      const mode=document.querySelector('input[name="mode"]:checked').value;
+      let saveName=mode==='flat'?flatFileName(a):a.path;
+      const ct=(res.headers.get('content-type')||'').split(';')[0].trim().toLowerCase();
+      let ext=MIME_EXT[ct];
+      if(!ext) ext=TYPE_DEFAULT_EXT[a.type];
+      if(ext) saveName=replaceExt(saveName,ext);
+      a.contentType=ct; a.filename=saveName; a.size=blob.size;
+      a.filename=saveName;
+      zip.file(saveName, blob);
       ok++;
       setStatus(i, '成功', 'ok');
     }catch(e){
