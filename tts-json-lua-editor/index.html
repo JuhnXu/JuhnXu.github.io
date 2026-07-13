@@ -1,29 +1,3 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<title>TTS Lua Editor</title>
-<style>
-body{margin:0;font-family:Arial;height:100vh;display:flex;flex-direction:column}
-#top{padding:10px;background:#333;color:#fff}
-#main{display:flex;flex:1}
-#list{width:240px;border-right:1px solid #ccc;overflow:auto}
-.item{padding:8px;cursor:pointer;border-bottom:1px solid #eee}
-.item:hover,.active{background:#def}
-#editor{flex:1;display:flex;flex-direction:column}
-textarea{flex:1;width:100%;border:none;outline:none;font-family:Consolas,monospace;font-size:14px;padding:10px;box-sizing:border-box}
-button{margin-left:8px}
-</style>
-</head>
-<body>
-<div id="top">
-<input type="file" id="file" accept=".json">
-<label><input type="checkbox" id="onlyLua"> 只显示有Lua</label><button id="exportXml">提取XML</button><button id="save">下载JSON</button>
-</div>
-<div id="main">
-<div id="list"></div>
-<div id="editor"><textarea id="code"></textarea></div>
-</div>
-<script src="js/app.js"></script>
-</body>
-</html>
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>TTS Lua/XML Editor</title><style>
+body{margin:0;font-family:Arial;height:100vh;display:flex;flex-direction:column}#top{padding:10px;background:#333;color:#fff}#main{display:flex;flex:1}#list{width:240px;border-right:1px solid #ccc;overflow:auto}.item{padding:8px;cursor:pointer;border-bottom:1px solid #eee}.item:hover,.active{background:#def}#editor{flex:1;display:flex;flex-direction:column}#tabs{padding:6px;background:#eee}textarea{flex:1;width:100%;border:none;outline:none;font-family:Consolas;font-size:14px;padding:10px;box-sizing:border-box}button{margin-left:8px}.hidden{display:none}
+</style></head><body><div id=top><input type=file id=file accept=.json><label><input type=checkbox id=onlyLua>只显示有Lua</label><button id=save>下载JSON</button></div><div id=main><div id=list></div><div id=editor><div id=tabs><button id=tabLua>Lua</button><button id=tabXml>XML</button></div><textarea id=code></textarea><textarea id=xml class=hidden></textarea></div></div><script src='js/app.js'></script></body></html>
