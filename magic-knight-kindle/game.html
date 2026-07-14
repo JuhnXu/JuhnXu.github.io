@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>魔法骑士回合助手</title>
+<link rel="stylesheet" href="css/kindle.css">
+</head>
+<body>
+<main>
+
+<h1>第 <span id="round"></span> 回合</h1>
+
+<section class="box">
+<h2>当前阶段</h2>
+<div id="phaseName"></div>
+<ul id="tasks"></ul>
+</section>
+
+<section class="box">
+<h2>Solo状态</h2>
+
+<p>名望 Fame:
+<span id="fame"></span>
+</p>
+
+<button onclick="change('fame',-1)">Fame -</button>
+<button onclick="change('fame',1)">Fame +</button>
+
+<p>经验 XP:
+<span id="xp"></span>
+</p>
+
+<button onclick="change('xp',-1)">XP -</button>
+<button onclick="change('xp',1)">XP +</button>
+
+<p>移动力:
+<span id="move"></span>
+</p>
+
+<button onclick="change('move',-1)">移动 -</button>
+<button onclick="change('move',1)">移动 +</button>
+
+</section>
+
+<button onclick="nextPhase()">下一阶段</button>
+<button onclick="newRound()">结束回合 / 新回合</button>
+
+</main>
+
+<script src="js/storage.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>

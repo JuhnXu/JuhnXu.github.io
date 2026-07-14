@@ -1,0 +1,42 @@
+body{
+background:white;
+color:black;
+font-family:"Noto Serif CJK SC","Songti SC",serif;
+}
+
+main{
+max-width:650px;
+margin:auto;
+padding:20px;
+}
+
+h1{
+font-size:28px;
+}
+
+h2{
+font-size:24px;
+}
+
+.box{
+border:2px solid black;
+padding:15px;
+margin:15px 0;
+}
+
+p,li,#phaseName{
+font-size:22px;
+line-height:1.8;
+}
+
+button,.button{
+display:block;
+width:100%;
+padding:16px;
+margin:10px 0;
+font-size:22px;
+background:white;
+color:black;
+border:2px solid black;
+text-decoration:none;
+}
