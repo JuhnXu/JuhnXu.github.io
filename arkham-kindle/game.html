@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>诡镇奇谈 Solo 助手</title>
+<link rel="stylesheet" href="css/kindle.css">
+</head>
+<body>
+<main>
+
+<h1>第 <span id="round"></span> 回合</h1>
+
+<section class="box">
+<h2>当前阶段</h2>
+<h2 id="phaseName"></h2>
+<ul id="phaseTasks"></ul>
+<button onclick="nextPhase()">下一阶段</button>
+<button onclick="newRound()">下一回合</button>
+</section>
+
+<section class="box">
+<h2>Doom</h2>
+<button onclick="change('doom',-1)">-</button>
+<span id="doom"></span>
+<button onclick="change('doom',1)">+</button>
+</section>
+
+<section class="box">
+<h2>调查员状态 Solo</h2>
+
+<p>线索:
+<span id="clue"></span>
+</p>
+<button onclick="change('clue',-1)">线索 -</button>
+<button onclick="change('clue',1)">线索 +</button>
+
+<p>资源:
+<span id="resource"></span>
+</p>
+<button onclick="change('resource',-1)">资源 -</button>
+<button onclick="change('resource',1)">资源 +</button>
+
+<p>生命:
+<span id="health"></span>
+</p>
+<button onclick="change('health',-1)">生命 -</button>
+<button onclick="change('health',1)">生命 +</button>
+
+<p>恐惧:
+<span id="horror"></span>
+</p>
+<button onclick="change('horror',-1)">恐惧 -</button>
+<button onclick="change('horror',1)">恐惧 +</button>
+
+</section>
+
+</main>
+
+<script src="js/storage.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>
