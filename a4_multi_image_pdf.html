@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -41,7 +42,7 @@ button.secondary{background:#394052}.danger{background:#c73f3f!important}.mini{p
 .sheet{width:calc(210mm * var(--zoom));height:calc(297mm * var(--zoom));position:relative;flex:0 0 auto}
 .a4{width:210mm;height:297mm;background:var(--paper);position:relative;box-shadow:0 12px 45px rgba(0,0,0,.35);overflow:hidden;color:#111;display:grid;gap:0}
 .slot{position:relative;border:.15mm solid var(--line);overflow:hidden;background:#fafafa;display:flex;align-items:center;justify-content:center}
-.slot.empty::after{content:"空";font-size:11px;color:#bbb}.slot img{width:100%;height:100%;object-fit:cover;display:block;user-select:none;-webkit-user-drag:none}
+.slot.empty::after{content:"空";font-size:11px;color:#bbb}.slot img{width:100%;height:100%;object-fit:contain;display:block;background:#fff;user-select:none;-webkit-user-drag:none}
 .bleed .slot::before{content:"";position:absolute;inset:2mm;border:.35mm dashed var(--danger);z-index:3;pointer-events:none}.bleed .slot::after{content:"";position:absolute;inset:0;border:.2mm solid rgba(255,0,0,.65);z-index:3;pointer-events:none}
 .thumbGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}.thumb{height:78px;border-radius:10px;overflow:hidden;position:relative;background:#111;border:1px solid #3d4356}.thumb img{width:100%;height:100%;object-fit:cover}.thumb b{position:absolute;left:5px;top:5px;background:rgba(0,0,0,.65);font-size:11px;border-radius:999px;padding:2px 6px}.thumb button{position:absolute;right:4px;top:4px;width:24px;height:24px;padding:0;border-radius:50%;background:rgba(200,45,45,.9);font-size:14px}
 .printOnly{display:none}
@@ -85,6 +86,7 @@ button.secondary{background:#394052}.danger{background:#c73f3f!important}.mini{p
   .bleed .slot::before{border-color:red}
   .bleed .slot::after{border-color:red}
 }
+#printBtn,#btnPrint{display:none !important;}
 </style>
 </head>
 <body>
@@ -109,13 +111,13 @@ button.secondary{background:#394052}.danger{background:#c73f3f!important}.mini{p
         <div><label>预览缩放</label><select id="zoom"><option value="0.45">45%</option><option value="0.55" selected>55%</option><option value="0.7">70%</option><option value="1">100%</option></select></div>
       </div>
       <label><input id="showBleed" type="checkbox" checked>显示红色出血线</label>
-      <p class="hint">无需输入实体尺寸：卡片尺寸会由 A4 页面自动均分。图片会像 CSS 的 object-fit: cover 一样铺满格子，多余部分居中裁切。</p>
+      <p class="hint">无需输入实体尺寸：卡片尺寸会由 A4 页面自动均分。可选择铺满(Cover)或完整显示(Contain)，完整显示会自动留白避免裁切。</p>
     </div>
 
     <div class="panel stats" id="stats">未上传图片</div>
 
     <div class="panel">
-      <button id="printBtn">打印 / 保存为 PDF</button>
+      <button id="printBtn" style="display:none"></button>
       <div style="height:10px"></div>
       <button class="secondary" id="exportZipBtn">下载分页图片 ZIP</button>
       <div style="height:10px"></div>
@@ -138,7 +140,7 @@ button.secondary{background:#394052}.danger{background:#c73f3f!important}.mini{p
         <button class="secondary mini" id="fitBtn">适合屏幕</button>
         <button class="secondary mini" id="actualBtn">100% 预览</button>
       </div>
-      <span class="hint">导出 PDF：点击“打印 / 保存为 PDF”，纸张选择 A4，边距选择“无”。</span>
+      <span class="hint">导出 PDF：点击“”，纸张选择 A4，边距选择“无”。</span>
     </div>
     <div id="pages" class="pages"></div>
   </main>
@@ -177,6 +179,7 @@ function render(){
   const perPage = cols * rows;
   const list = expandedImages();
   const pageCount = Math.max(1, Math.ceil(list.length / perPage));
+  document.documentElement.style.setProperty('--fitMode',($('fitMode')?.value)||'contain');
   const pages = $('pages');
   pages.innerHTML = '';
 
@@ -225,7 +228,7 @@ function renderThumbs(){
 }
 
 $('fileInput').addEventListener('change', e => readFiles(e.target.files));
-['cols','rows','copies','zoom','showBleed'].forEach(id => $(id).addEventListener('input', render));
+['cols','rows','copies','zoom','showBleed','fitMode'].forEach(id => { const el=$(id); if(el) el.addEventListener('input', render); });
 
 async function exportImageZip(){
   if(!images.length){
@@ -278,7 +281,8 @@ async function exportImageZip(){
       const x=(i%cols)*cellW;
       const y=Math.floor(i/cols)*cellH;
 
-      const scale=Math.max(cellW/img.width, cellH/img.height);
+      const mode=$('fitMode')?$('fitMode').value:'contain';
+      const scale=(mode==='cover'?Math.max:Math.min)(cellW/img.width, cellH/img.height);
       const w=img.width*scale;
       const h=img.height*scale;
 
