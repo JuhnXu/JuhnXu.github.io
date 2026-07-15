@@ -2,6 +2,7 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>多图合成 A4 PDF</title>
@@ -57,7 +58,29 @@ button.secondary{background:#394052}.danger{background:#c73f3f!important}.mini{p
   .pageWrap:last-child{break-after:auto;page-break-after:auto}
   .sheet{display:block!important;width:210mm!important;height:297mm!important;max-width:none!important;aspect-ratio:auto!important;margin:0!important;padding:0!important;overflow:hidden!important}
   .a4{transform:none!important;}
-  .a4{width:210mm!important;height:297mm!important;max-width:none!important;aspect-ratio:auto!important;box-shadow:none!important;margin:0!important;padding:0!important;transform:none!important;break-inside:avoid!important;page-break-inside:avoid!important;overflow:hidden!important}
+  .a4{width:210mm!important;height:290mm!important;max-width:none!important;aspect-ratio:auto!important;box-shadow:none!important;margin:0!important;padding:0!important;transform:none!important;break-inside:avoid!important;page-break-inside:avoid!important;overflow:hidden!important}
+  .pages{display:block!important;width:210mm!important;margin:0!important;padding:0!important}
+  .pageWrap{
+    display:block!important;
+    width:210mm!important;
+    height:290mm!important;
+    margin:0!important;
+    padding:0!important;
+    break-after:auto!important;
+    page-break-after:auto!important;
+    overflow:hidden!important;
+  }
+  .pageWrap:last-child{
+    break-after:auto!important;
+    page-break-after:auto!important;
+  }
+  .sheet{
+    width:210mm!important;
+    height:290mm!important;
+    margin:0!important;
+    transform:none!important;
+    overflow:hidden!important;
+  }
   .slot{border:.12mm solid #ddd}
   .bleed .slot::before{border-color:red}
   .bleed .slot::after{border-color:red}
@@ -93,6 +116,8 @@ button.secondary{background:#394052}.danger{background:#c73f3f!important}.mini{p
 
     <div class="panel">
       <button id="printBtn">打印 / 保存为 PDF</button>
+      <div style="height:10px"></div>
+      <button class="secondary" id="exportZipBtn">下载分页图片 ZIP</button>
       <div style="height:10px"></div>
       <button class="secondary" id="clearBtn">清空图片</button>
     </div>
@@ -201,6 +226,90 @@ function renderThumbs(){
 
 $('fileInput').addEventListener('change', e => readFiles(e.target.files));
 ['cols','rows','copies','zoom','showBleed'].forEach(id => $(id).addEventListener('input', render));
+
+async function exportImageZip(){
+  if(!images.length){
+    alert('请先上传图片');
+    return;
+  }
+
+  if(typeof JSZip === 'undefined'){
+    alert('ZIP组件加载失败');
+    return;
+  }
+
+  const cols = Math.max(1, parseInt($('cols').value||1,10));
+  const rows = Math.max(1, parseInt($('rows').value||1,10));
+  const list = expandedImages();
+  const perPage = cols * rows;
+
+  const zip = new JSZip();
+
+  for(let p=0;p<Math.ceil(list.length/perPage);p++){
+
+    const canvas = document.createElement('canvas');
+
+    // 横向A4比例输出高清合图
+    const width = 2480;
+    const height = 3508;
+
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0,0,width,height);
+
+    const cellW = width / cols;
+    const cellH = height / rows;
+
+    for(let i=0;i<perPage;i++){
+      const item=list[p*perPage+i];
+      if(!item) continue;
+
+      const img=new Image();
+      img.src=item.src;
+
+      await new Promise(r=>{
+        img.onload=r;
+        img.onerror=r;
+      });
+
+      const x=(i%cols)*cellW;
+      const y=Math.floor(i/cols)*cellH;
+
+      const scale=Math.max(cellW/img.width, cellH/img.height);
+      const w=img.width*scale;
+      const h=img.height*scale;
+
+      ctx.drawImage(
+        img,
+        x+(cellW-w)/2,
+        y+(cellH-h)/2,
+        w,h
+      );
+    }
+
+    const blob=await new Promise(r=>canvas.toBlob(r,'image/png'));
+
+    zip.file(
+      `A4_Page_${p+1}.png`,
+      blob
+    );
+  }
+
+  const result=await zip.generateAsync({type:'blob'});
+
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(result);
+  a.download='A4_Image_Pages.zip';
+  a.click();
+
+  setTimeout(()=>{
+    URL.revokeObjectURL(a.href);
+  },1000);
+}
+
 $('printBtn').onclick = async () => {
   try{
     localStorage.setItem('a4_pdf_config', JSON.stringify({
@@ -230,6 +339,7 @@ $('printBtn').onclick = async () => {
 
   window.print();
 };
+$('exportZipBtn').onclick = exportImageZip;
 $('clearBtn').onclick = () => { images=[]; $('fileInput').value=''; render(); };
 $('fitBtn').onclick = () => { $('zoom').value='0.45'; render(); };
 $('actualBtn').onclick = () => { $('zoom').value='1'; render(); };
