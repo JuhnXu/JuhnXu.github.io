@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -55,6 +56,7 @@ button.secondary{background:#394052}.danger{background:#c73f3f!important}.mini{p
   .pageWrap{display:block!important;width:210mm!important;height:297mm!important;margin:0!important;padding:0!important;break-after:page;page-break-after:always;overflow:hidden!important}
   .pageWrap:last-child{break-after:auto;page-break-after:auto}
   .sheet{display:block!important;width:210mm!important;height:297mm!important;max-width:none!important;aspect-ratio:auto!important;margin:0!important;padding:0!important;overflow:hidden!important}
+  .a4{transform:none!important;}
   .a4{width:210mm!important;height:297mm!important;max-width:none!important;aspect-ratio:auto!important;box-shadow:none!important;margin:0!important;padding:0!important;transform:none!important;break-inside:avoid!important;page-break-inside:avoid!important;overflow:hidden!important}
   .slot{border:.12mm solid #ddd}
   .bleed .slot::before{border-color:red}
@@ -200,14 +202,32 @@ function renderThumbs(){
 $('fileInput').addEventListener('change', e => readFiles(e.target.files));
 ['cols','rows','copies','zoom','showBleed'].forEach(id => $(id).addEventListener('input', render));
 $('printBtn').onclick = async () => {
-  await Promise.all([...document.images].map(img => {
-    if(img.complete) return Promise.resolve();
-    if(img.decode) return img.decode().catch(() => {});
-    return new Promise(resolve => {
-      img.addEventListener('load', resolve, {once:true});
-      img.addEventListener('error', resolve, {once:true});
-    });
+  try{
+    localStorage.setItem('a4_pdf_config', JSON.stringify({
+      cols:$('cols').value,
+      rows:$('rows').value,
+      copies:$('copies').value,
+      zoom:$('zoom').value,
+      bleed:$('showBleed').checked
+    }));
+  }catch(e){}
+
+  await Promise.all([...document.images].map(async img => {
+    try{
+      if(img.decode){
+        await img.decode();
+      }else if(!img.complete){
+        await new Promise(resolve=>{
+          img.addEventListener('load',resolve,{once:true});
+          img.addEventListener('error',resolve,{once:true});
+        });
+      }
+    }catch(e){}
   }));
+
+  // 等待浏览器完成布局和图片绘制
+  await new Promise(resolve=>setTimeout(resolve,300));
+
   window.print();
 };
 $('clearBtn').onclick = () => { images=[]; $('fileInput').value=''; render(); };
@@ -218,7 +238,28 @@ const drop = $('drop');
 ['dragenter','dragover'].forEach(ev => document.addEventListener(ev, e=>{e.preventDefault(); drop.classList.add('dragover');}));
 ['dragleave','drop'].forEach(ev => document.addEventListener(ev, e=>{e.preventDefault(); drop.classList.remove('dragover');}));
 document.addEventListener('drop', e => readFiles(e.dataTransfer.files));
+window.onafterprint = ()=>{
+  document.body.style.display='block';
+};
+
+const savedConfig = localStorage.getItem('a4_pdf_config');
+if(savedConfig){
+  try{
+    const cfg = JSON.parse(savedConfig);
+    $('cols').value = cfg.cols;
+    $('rows').value = cfg.rows;
+    $('copies').value = cfg.copies;
+    $('zoom').value = cfg.zoom;
+    $('showBleed').checked = cfg.bleed;
+  }catch(e){}
+}
+
 render();
+window.addEventListener('error',e=>{
+  if(e.message && e.message.includes('QuotaExceeded')){
+    console.warn('localStorage容量不足，已忽略缓存');
+  }
+});
 </script>
 </body>
 </html>
