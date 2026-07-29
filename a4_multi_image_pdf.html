@@ -1,7 +1,9 @@
 
+
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>多图合成 A4 PDF</title>
@@ -40,7 +42,7 @@ button.secondary{background:#394052}.danger{background:#c73f3f!important}.mini{p
 .sheet{width:calc(210mm * var(--zoom));height:calc(297mm * var(--zoom));position:relative;flex:0 0 auto}
 .a4{width:210mm;height:297mm;background:var(--paper);position:relative;box-shadow:0 12px 45px rgba(0,0,0,.35);overflow:hidden;color:#111;display:grid;gap:0}
 .slot{position:relative;border:.15mm solid var(--line);overflow:hidden;background:#fafafa;display:flex;align-items:center;justify-content:center}
-.slot.empty::after{content:"空";font-size:11px;color:#bbb}.slot img{width:100%;height:100%;object-fit:cover;display:block;user-select:none;-webkit-user-drag:none}
+.slot.empty::after{content:"空";font-size:11px;color:#bbb}.slot img{width:100%;height:100%;object-fit:contain;display:block;background:#fff;user-select:none;-webkit-user-drag:none}
 .bleed .slot::before{content:"";position:absolute;inset:2mm;border:.35mm dashed var(--danger);z-index:3;pointer-events:none}.bleed .slot::after{content:"";position:absolute;inset:0;border:.2mm solid rgba(255,0,0,.65);z-index:3;pointer-events:none}
 .thumbGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}.thumb{height:78px;border-radius:10px;overflow:hidden;position:relative;background:#111;border:1px solid #3d4356}.thumb img{width:100%;height:100%;object-fit:cover}.thumb b{position:absolute;left:5px;top:5px;background:rgba(0,0,0,.65);font-size:11px;border-radius:999px;padding:2px 6px}.thumb button{position:absolute;right:4px;top:4px;width:24px;height:24px;padding:0;border-radius:50%;background:rgba(200,45,45,.9);font-size:14px}
 .printOnly{display:none}
@@ -57,11 +59,34 @@ button.secondary{background:#394052}.danger{background:#c73f3f!important}.mini{p
   .pageWrap:last-child{break-after:auto;page-break-after:auto}
   .sheet{display:block!important;width:210mm!important;height:297mm!important;max-width:none!important;aspect-ratio:auto!important;margin:0!important;padding:0!important;overflow:hidden!important}
   .a4{transform:none!important;}
-  .a4{width:210mm!important;height:297mm!important;max-width:none!important;aspect-ratio:auto!important;box-shadow:none!important;margin:0!important;padding:0!important;transform:none!important;break-inside:avoid!important;page-break-inside:avoid!important;overflow:hidden!important}
+  .a4{width:210mm!important;height:290mm!important;max-width:none!important;aspect-ratio:auto!important;box-shadow:none!important;margin:0!important;padding:0!important;transform:none!important;break-inside:avoid!important;page-break-inside:avoid!important;overflow:hidden!important}
+  .pages{display:block!important;width:210mm!important;margin:0!important;padding:0!important}
+  .pageWrap{
+    display:block!important;
+    width:210mm!important;
+    height:290mm!important;
+    margin:0!important;
+    padding:0!important;
+    break-after:auto!important;
+    page-break-after:auto!important;
+    overflow:hidden!important;
+  }
+  .pageWrap:last-child{
+    break-after:auto!important;
+    page-break-after:auto!important;
+  }
+  .sheet{
+    width:210mm!important;
+    height:290mm!important;
+    margin:0!important;
+    transform:none!important;
+    overflow:hidden!important;
+  }
   .slot{border:.12mm solid #ddd}
   .bleed .slot::before{border-color:red}
   .bleed .slot::after{border-color:red}
 }
+#printBtn,#btnPrint{display:none !important;}
 </style>
 </head>
 <body>
@@ -86,13 +111,15 @@ button.secondary{background:#394052}.danger{background:#c73f3f!important}.mini{p
         <div><label>预览缩放</label><select id="zoom"><option value="0.45">45%</option><option value="0.55" selected>55%</option><option value="0.7">70%</option><option value="1">100%</option></select></div>
       </div>
       <label><input id="showBleed" type="checkbox" checked>显示红色出血线</label>
-      <p class="hint">无需输入实体尺寸：卡片尺寸会由 A4 页面自动均分。图片会像 CSS 的 object-fit: cover 一样铺满格子，多余部分居中裁切。</p>
+      <p class="hint">无需输入实体尺寸：卡片尺寸会由 A4 页面自动均分。可选择铺满(Cover)或完整显示(Contain)，完整显示会自动留白避免裁切。</p>
     </div>
 
     <div class="panel stats" id="stats">未上传图片</div>
 
     <div class="panel">
-      <button id="printBtn">打印 / 保存为 PDF</button>
+      <button id="printBtn" style="display:none"></button>
+      <div style="height:10px"></div>
+      <button class="secondary" id="exportZipBtn">下载分页图片 ZIP</button>
       <div style="height:10px"></div>
       <button class="secondary" id="clearBtn">清空图片</button>
     </div>
@@ -113,7 +140,7 @@ button.secondary{background:#394052}.danger{background:#c73f3f!important}.mini{p
         <button class="secondary mini" id="fitBtn">适合屏幕</button>
         <button class="secondary mini" id="actualBtn">100% 预览</button>
       </div>
-      <span class="hint">导出 PDF：点击“打印 / 保存为 PDF”，纸张选择 A4，边距选择“无”。</span>
+      <span class="hint">导出 PDF：点击“”，纸张选择 A4，边距选择“无”。</span>
     </div>
     <div id="pages" class="pages"></div>
   </main>
@@ -152,6 +179,7 @@ function render(){
   const perPage = cols * rows;
   const list = expandedImages();
   const pageCount = Math.max(1, Math.ceil(list.length / perPage));
+  document.documentElement.style.setProperty('--fitMode',($('fitMode')?.value)||'contain');
   const pages = $('pages');
   pages.innerHTML = '';
 
@@ -200,7 +228,92 @@ function renderThumbs(){
 }
 
 $('fileInput').addEventListener('change', e => readFiles(e.target.files));
-['cols','rows','copies','zoom','showBleed'].forEach(id => $(id).addEventListener('input', render));
+['cols','rows','copies','zoom','showBleed','fitMode'].forEach(id => { const el=$(id); if(el) el.addEventListener('input', render); });
+
+async function exportImageZip(){
+  if(!images.length){
+    alert('请先上传图片');
+    return;
+  }
+
+  if(typeof JSZip === 'undefined'){
+    alert('ZIP组件加载失败');
+    return;
+  }
+
+  const cols = Math.max(1, parseInt($('cols').value||1,10));
+  const rows = Math.max(1, parseInt($('rows').value||1,10));
+  const list = expandedImages();
+  const perPage = cols * rows;
+
+  const zip = new JSZip();
+
+  for(let p=0;p<Math.ceil(list.length/perPage);p++){
+
+    const canvas = document.createElement('canvas');
+
+    // 横向A4比例输出高清合图
+    const width = 2480;
+    const height = 3508;
+
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0,0,width,height);
+
+    const cellW = width / cols;
+    const cellH = height / rows;
+
+    for(let i=0;i<perPage;i++){
+      const item=list[p*perPage+i];
+      if(!item) continue;
+
+      const img=new Image();
+      img.src=item.src;
+
+      await new Promise(r=>{
+        img.onload=r;
+        img.onerror=r;
+      });
+
+      const x=(i%cols)*cellW;
+      const y=Math.floor(i/cols)*cellH;
+
+      const mode=$('fitMode')?$('fitMode').value:'contain';
+      const scale=(mode==='cover'?Math.max:Math.min)(cellW/img.width, cellH/img.height);
+      const w=img.width*scale;
+      const h=img.height*scale;
+
+      ctx.drawImage(
+        img,
+        x+(cellW-w)/2,
+        y+(cellH-h)/2,
+        w,h
+      );
+    }
+
+    const blob=await new Promise(r=>canvas.toBlob(r,'image/png'));
+
+    zip.file(
+      `A4_Page_${p+1}.png`,
+      blob
+    );
+  }
+
+  const result=await zip.generateAsync({type:'blob'});
+
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(result);
+  a.download='A4_Image_Pages.zip';
+  a.click();
+
+  setTimeout(()=>{
+    URL.revokeObjectURL(a.href);
+  },1000);
+}
+
 $('printBtn').onclick = async () => {
   try{
     localStorage.setItem('a4_pdf_config', JSON.stringify({
@@ -230,6 +343,7 @@ $('printBtn').onclick = async () => {
 
   window.print();
 };
+$('exportZipBtn').onclick = exportImageZip;
 $('clearBtn').onclick = () => { images=[]; $('fileInput').value=''; render(); };
 $('fitBtn').onclick = () => { $('zoom').value='0.45'; render(); };
 $('actualBtn').onclick = () => { $('zoom').value='1'; render(); };
