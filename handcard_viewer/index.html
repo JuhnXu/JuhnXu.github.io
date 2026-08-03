@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>卡牌图片查看器</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="toolbar">
+<input id="urlInput" placeholder="输入图片链接">
+<button id="addBtn">添加卡牌</button>
+<button id="clearBtn">清空</button>
+</div>
+
+<div id="cards" class="cards"></div>
+
+<div id="viewer" class="viewer">
+<img id="preview">
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
