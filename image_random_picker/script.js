@@ -1,4 +1,4 @@
-const baseUrl="https://juhnxu.github.io/mk_db/";
+let baseUrl="https://juhnxu.github.io/mk_db/";
 
 let images=[];
 let selected=[];
@@ -12,6 +12,14 @@ const discardBox=document.getElementById("discard");
 
 async function loadImages(){
     folder=document.getElementById("folder").value.trim();
+
+    const baseInput=document.getElementById("baseUrl");
+    if(baseInput && baseInput.value.trim()){
+        baseUrl=baseInput.value.trim();
+        if(!baseUrl.endsWith("/")){
+            baseUrl+="/";
+        }
+    }
 
     // 根据加载成功的目录名修改标题
     document.querySelector("h1").innerText =
