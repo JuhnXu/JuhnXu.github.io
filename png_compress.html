@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>图片压缩工具</title>
@@ -19,7 +20,7 @@
         <div class="field"><label><span>压缩质量</span><small><b id="qualityText">75</b>%</small></label><input id="quality" type="range" min="10" max="100" value="75" /></div>
         <div class="field"><label for="format">输出格式</label><select id="format"><option value="image/jpeg">JPG，体积更小</option><option value="image/webp">WebP，更高压缩率</option><option value="image/png">PNG，保留透明</option></select></div><label class="checkline"><input id="keepSmallest" type="checkbox" checked /> 输出变大时自动保留原图</label>
         <div class="grid-2"><div class="field"><label for="maxWidth">最大宽度</label><input id="maxWidth" type="number" min="0" value="1920" placeholder="0为不限制" /></div><div class="field"><label for="maxHeight">最大高度</label><input id="maxHeight" type="number" min="0" value="1920" placeholder="0为不限制" /></div></div>
-        <div class="actions"><button id="compressBtn">开始压缩</button><button id="clearBtn" class="secondary">清空</button></div>
+        <div class="actions"><button id="downloadAllBtn" class="primary-btn" type="button" style="display:inline-flex">一键下载所有图片</button><button id="compressBtn">开始压缩</button><button id="clearBtn" class="secondary">清空</button></div>
         <div class="progress-wrap" id="progressWrap"><div class="progress-bar" id="progressBar"></div></div>
         <p class="hint">说明：PNG 是无损格式，浏览器重新编码 PNG 时不一定会变小；已默认开启“输出变大时自动保留原图”。想明显减小体积，优先选择 JPG 或 WebP。遇到超大图，建议把最大宽高先设为 1280 或 1920。</p>
       </aside>
@@ -28,13 +29,13 @@
   </main>
 <script>
 const $=id=>document.getElementById(id);const fileInput=$('fileInput'),dropzone=$('dropzone'),quality=$('quality'),qualityText=$('qualityText'),format=$('format'),keepSmallest=$('keepSmallest'),maxWidth=$('maxWidth'),maxHeight=$('maxHeight'),compressBtn=$('compressBtn'),clearBtn=$('clearBtn'),list=$('list'),empty=$('empty'),count=$('count'),originSize=$('originSize'),compressedSize=$('compressedSize'),progressWrap=$('progressWrap'),progressBar=$('progressBar');
-const MAX_OUTPUT_PIXELS=40000000;let selectedFiles=[],compressedItems=[],previewUrls=[];
+const MAX_OUTPUT_PIXELS=40000000;let selectedFiles=[],compressedItems=[],previewUrls=[];window.compressedItems=compressedItems;
 quality.oninput=()=>qualityText.textContent=quality.value;fileInput.onchange=e=>{addFiles(e.target.files);fileInput.value=''};['dragenter','dragover'].forEach(t=>dropzone.addEventListener(t,e=>{e.preventDefault();dropzone.classList.add('dragover')}));['dragleave','drop'].forEach(t=>dropzone.addEventListener(t,e=>{e.preventDefault();dropzone.classList.remove('dragover')}));dropzone.addEventListener('drop',e=>addFiles(e.dataTransfer.files));compressBtn.onclick=compressAll;clearBtn.onclick=clearAll;
 function addFiles(files){const imgs=Array.from(files).filter(f=>f.type.startsWith('image/')||/\.(jpe?g|png|webp|gif|bmp)$/i.test(f.name||''));if(!imgs.length&&files.length){alert('没有识别到图片文件');return}selectedFiles=selectedFiles.concat(imgs);renderPending();updateSummary()}
-function clearAll(){revokePreviewUrls();compressedItems.forEach(i=>URL.revokeObjectURL(i.url));selectedFiles=[];compressedItems=[];list.innerHTML='';empty.style.display='grid';progressWrap.style.display='none';progressBar.style.width='0%';updateSummary()}
+function clearAll(){revokePreviewUrls();compressedItems.forEach(i=>URL.revokeObjectURL(i.url));selectedFiles=[];compressedItems=[];window.compressedItems=compressedItems;list.innerHTML='';empty.style.display='grid';progressWrap.style.display='none';progressBar.style.width='0%';updateSummary()}
 function revokePreviewUrls(){previewUrls.forEach(u=>URL.revokeObjectURL(u));previewUrls=[]}
 function renderPending(){empty.style.display=(selectedFiles.length||compressedItems.length)?'none':'grid';list.innerHTML='';revokePreviewUrls();selectedFiles.forEach((file,index)=>{const url=URL.createObjectURL(file);previewUrls.push(url);const el=document.createElement('article');el.className='item';el.innerHTML=`<img class="thumb" src="${url}" alt="${esc(file.name)}" loading="lazy"><div class="info"><h3>${esc(file.name)}</h3><div class="meta"><span>原图：${bytes(file.size)}</span><span>状态：等待压缩</span><span>类型：${esc(file.type||'未知，压缩时自动识别')}</span></div></div><div class="item-actions"><button class="remove-btn" data-index="${index}">移除</button></div>`;const img=el.querySelector('img');img.onerror=()=>img.replaceWith(fallback('预览失败\n仍可尝试压缩'));list.appendChild(el)});list.querySelectorAll('.remove-btn').forEach(btn=>btn.onclick=()=>{selectedFiles.splice(Number(btn.dataset.index),1);renderPending();updateSummary()})}
-async function compressAll(){if(!selectedFiles.length){alert('请先选择图片');return}compressBtn.disabled=true;progressWrap.style.display='block';progressBar.style.width='0%';compressedItems.forEach(i=>URL.revokeObjectURL(i.url));compressedItems=[];list.innerHTML='';empty.style.display='none';revokePreviewUrls();for(let i=0;i<selectedFiles.length;i++){const file=selectedFiles[i];renderProcessing(file,i);await frame();try{const result=await compressImage(file,{quality:Number(quality.value)/100,mimeType:format.value,keepSmallest:keepSmallest.checked,maxWidth:Number(maxWidth.value)||0,maxHeight:Number(maxHeight.value)||0});compressedItems.push(result);replaceSlot(i,compressedNode(result,compressedItems.length-1))}catch(err){replaceSlot(i,errorNode(file,err))}progressBar.style.width=Math.round((i+1)/selectedFiles.length*100)+'%';updateSummary();await frame()}compressBtn.disabled=false}
+async function compressAll(){if(!selectedFiles.length){alert('请先选择图片');return}compressBtn.disabled=true;progressWrap.style.display='block';progressBar.style.width='0%';compressedItems.forEach(i=>URL.revokeObjectURL(i.url));compressedItems=[];window.compressedItems=compressedItems;list.innerHTML='';empty.style.display='none';revokePreviewUrls();for(let i=0;i<selectedFiles.length;i++){const file=selectedFiles[i];renderProcessing(file,i);await frame();try{const result=await compressImage(file,{quality:Number(quality.value)/100,mimeType:format.value,keepSmallest:keepSmallest.checked,maxWidth:Number(maxWidth.value)||0,maxHeight:Number(maxHeight.value)||0});compressedItems.push(result);replaceSlot(i,compressedNode(result,compressedItems.length-1))}catch(err){replaceSlot(i,errorNode(file,err))}progressBar.style.width=Math.round((i+1)/selectedFiles.length*100)+'%';updateSummary();await frame()}compressBtn.disabled=false}
 async function compressImage(file,opt){const buf=await file.arrayBuffer();const meta=readImageMeta(buf,file);if(!meta.mime)throw new Error('文件头不是常见图片格式，可能并不是有效图片');if(!meta.width||!meta.height)throw new Error('无法从文件头读取图片尺寸，可能文件损坏或格式特殊');let size=calc(meta.width,meta.height,opt.maxWidth,opt.maxHeight);const pixels=size.width*size.height;if(pixels>MAX_OUTPUT_PIXELS){const r=Math.sqrt(MAX_OUTPUT_PIXELS/pixels);size={width:Math.max(1,Math.floor(size.width*r)),height:Math.max(1,Math.floor(size.height*r))}}
  const blobForDecode=new Blob([buf],{type:meta.mime});const source=await decodeBlob(blobForDecode,size);const canvas=document.createElement('canvas');canvas.width=size.width;canvas.height=size.height;const ctx=canvas.getContext('2d',{alpha:opt.mimeType!=='image/jpeg',willReadFrequently:false});if(!ctx){closeSource(source);throw new Error('Canvas 初始化失败')}ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';if(opt.mimeType==='image/jpeg'){ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height)}try{ctx.drawImage(source,0,0,size.width,size.height)}catch(e){closeSource(source);throw new Error('图片绘制失败，建议把最大宽高调低到 1280 后重试')}closeSource(source);const out=await toBlob(canvas,opt.mimeType,opt.quality);if(!out)throw new Error('当前浏览器不支持该输出格式');
 let finalBlob=out;
@@ -54,6 +55,55 @@ function renderProcessing(file,i){const el=document.createElement('article');el.
 function compressedNode(item,idx){const origin=item.originalFile.size,after=item.blob.size,saved=origin?Math.round((1-after/origin)*100):0;const el=document.createElement('article');el.className='item';el.innerHTML=`<img class="thumb" src="${item.url}" alt="${esc(item.filename)}"><div class="info"><h3>${esc(item.originalFile.name)}</h3><div class="meta"><span>原图：${bytes(origin)}</span><span>压缩后：${bytes(after)}</span><span>尺寸：${item.width} × ${item.height}</span><span>源格式：${esc(item.mime)}</span><span>输出格式：${esc(item.outputMime||'')}</span><span class="${item.usedOriginal?'warn-text':'save'}">${item.usedOriginal?'已保留原图，避免变大':'节省：'+saved+'%'}</span>${item.usedOriginal?`<span class="warn-text">重新编码后会变为：${bytes(item.encodedSize)}</span>`:''}${item.autoLimited?'<span class="warn-text">已自动限制输出像素</span>':''}</div></div><div class="item-actions"><a class="download-link" href="${item.url}" download="${esc(item.filename)}">下载图片</a><button class="remove-btn">删除</button></div>`;el.querySelector('button').onclick=()=>{URL.revokeObjectURL(item.url);compressedItems.splice(idx,1);el.remove();updateSummary();if(!compressedItems.length)empty.style.display='grid'};return el}
 function errorNode(file,err){const el=document.createElement('article');el.className='item';el.innerHTML=`<div class="thumb thumb-fallback" style="color:#fb7185">失败</div><div class="info"><h3>${esc(file.name)}</h3><div class="meta"><span>原图：${bytes(file.size)}</span><span class="error-text">原因：${esc(err.message||'未知错误')}</span></div></div><div class="item-actions"><button class="small-btn" type="button">建议：确认文件可打开，或调低最大宽高</button></div>`;return el}
 function fallback(t){const d=document.createElement('div');d.className='thumb thumb-fallback';d.textContent=t;return d}function updateSummary(){originSize.textContent=bytes(selectedFiles.reduce((s,f)=>s+f.size,0));compressedSize.textContent=bytes(compressedItems.reduce((s,i)=>s+i.blob.size,0));count.textContent=selectedFiles.length}function bytes(b){if(!b)return'0 KB';const u=['B','KB','MB','GB'];let s=b,i=0;while(s>=1024&&i<u.length-1){s/=1024;i++}return`${s.toFixed(s>=10||i===0?0:1)} ${u[i]}`}function ext(m){return m==='image/webp'?'webp':m==='image/png'?'png':'jpg'}function removeExt(n){return(n||'image').replace(/\.[^.]+$/,'')||'image'}function esc(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;')}function frame(){return new Promise(r=>requestAnimationFrame(r))}
+</script>
+
+<script>
+(function(){
+  const btn=document.getElementById("downloadAllBtn");
+  if(!btn) return;
+
+  function refreshDownloadAll(){
+    btn.style.display="inline-flex";
+  }
+
+  btn.onclick=async function(){
+    if(!window.JSZip){
+      return;
+    }
+    if(!window.compressedItems || !window.compressedItems.length){
+      alert("请先压缩图片");
+      return;
+    }
+    btn.disabled=true;
+    btn.textContent="正在打包...";
+
+    const zip=new JSZip();
+    window.compressedItems.forEach(item=>{
+      zip.file(item.filename, item.blob);
+    });
+
+    const blob=await zip.generateAsync({type:"blob"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=url;
+    a.download="compressed_images.zip";
+    a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+
+    btn.disabled=false;
+    btn.textContent="一键下载所有图片";
+  };
+
+  const oldUpdate=window.updateSummary;
+  if(oldUpdate){
+    window.updateSummary=function(){
+      oldUpdate();
+      refreshDownloadAll();
+    }
+  }
+
+  setInterval(refreshDownloadAll,500);
+})();
 </script>
 </body>
 </html>
