@@ -83,13 +83,20 @@ function renderPool(){
         div.innerHTML=`
         <img src="${baseUrl+folder+"/"+name}">
         <div>${name}</div>
-        <button>保留</button>`;
+        <button>保留</button>
+        <button>拷贝链接</button>`;
 
-        div.querySelector("button").onclick=()=>{
+        let buttons=div.querySelectorAll("button");
+
+        buttons[0].onclick=()=>{
             if(!selected.includes(name)){
                 selected.push(name);
                 renderSelected();
             }
+        };
+
+        buttons[1].onclick=()=>{
+            copyImageUrl(name);
         };
 
         pool.appendChild(div);
@@ -107,7 +114,8 @@ function renderSelected(){
         <img src="${baseUrl+folder+"/"+name}">
         <div>${name}</div>
         <button>移除</button>
-        <button>丢弃</button>`;
+        <button>丢弃</button>
+        <button>拷贝链接</button>`;
 
         let buttons=div.querySelectorAll("button");
 
@@ -123,6 +131,10 @@ function renderSelected(){
 
             renderSelected();
             renderDiscard();
+        };
+
+        buttons[2].onclick=()=>{
+            copyImageUrl(name);
         };
 
         selectedBox.appendChild(div);
@@ -164,4 +176,16 @@ function updateProgress(num){
     if(text){
         text.innerText="正在尝试加载 img"+num+".jpg";
     }
+}
+
+
+function copyImageUrl(name){
+    const url=baseUrl+folder+"/"+name;
+    navigator.clipboard.writeText(url)
+        .then(()=>{
+            alert("已复制链接:\n"+url);
+        })
+        .catch(()=>{
+            prompt("复制链接:", url);
+        });
 }
