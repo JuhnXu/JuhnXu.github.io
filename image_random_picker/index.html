@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>图片随机抽取器</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="container">
+<h1>图片随机抽取器</h1>
+
+<div class="panel">
+<label>
+图片目录：
+<input id="folder" value="tactic">
+</label>
+<button id="loadBtn">加载卡池</button>
+
+<br><br>
+
+<label>
+抽取数量：
+<input id="count" type="number" min="1" value="5">
+</label>
+<button id="randomBtn">随机抽取</button>
+</div>
+
+<div id="progressBox" style="display:none">
+    <div id="progressText">准备加载...</div>
+</div>
+
+<h2>候选图片</h2>
+<div id="pool" class="grid"></div>
+
+<h2>已保留图片</h2>
+<div id="selected" class="grid"></div>
+
+<h2>弃牌区</h2>
+<div id="discard" class="discard"></div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
