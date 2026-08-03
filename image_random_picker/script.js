@@ -13,6 +13,10 @@ const discardBox=document.getElementById("discard");
 async function loadImages(){
     folder=document.getElementById("folder").value.trim();
 
+    // 根据加载成功的目录名修改标题
+    document.querySelector("h1").innerText =
+        folder + "";
+
     showProgress(true);
 
     let list=[];
