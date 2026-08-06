@@ -104,4 +104,48 @@ new Sortable(cards,{
  }
 });
 
+
+const attributeList=document.getElementById("attributeList");
+let attributes=JSON.parse(localStorage.getItem("attributes")||"[]");
+
+function saveAttributes(){
+ localStorage.setItem("attributes",JSON.stringify(attributes));
+}
+
+function renderAttributes(){
+ attributeList.innerHTML="";
+ attributes.forEach((attr,index)=>{
+  let row=document.createElement("div");
+  row.className="attribute-row";
+  row.innerHTML=`
+   <input class="attr-name" value="${attr.name}" placeholder="属性名称">
+   <button class="minus">-</button>
+   <input class="attr-value" type="number" value="${attr.value}">
+   <button class="plus">+</button>
+   <button class="remove">删除</button>`;
+
+  let name=row.querySelector('.attr-name');
+  let value=row.querySelector('.attr-value');
+  name.onchange=()=>{attr.name=name.value;saveAttributes();};
+  value.onchange=()=>{attr.value=Math.max(0,Number(value.value)||0);saveAttributes();};
+  row.querySelector('.minus').onclick=()=>{
+   attr.value=Math.max(0,attr.value-1);saveAttributes();renderAttributes();
+  };
+  row.querySelector('.plus').onclick=()=>{
+   attr.value++;saveAttributes();renderAttributes();
+  };
+  row.querySelector('.remove').onclick=()=>{
+   attributes.splice(index,1);saveAttributes();renderAttributes();
+  };
+  attributeList.appendChild(row);
+ });
+}
+
+document.getElementById('addAttrBtn').onclick=()=>{
+ attributes.push({name:'',value:0});
+ saveAttributes();
+ renderAttributes();
+};
+
+renderAttributes();
 render();

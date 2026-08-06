@@ -90,3 +90,10 @@ button{
  .card{width:80px;max-width:80px;}
  .cards{gap:2px;}
 }
+
+.attributes{margin-bottom:20px;background:#fff;padding:10px;border-radius:10px;}
+.attribute-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.attribute-row .attr-name{width:120px;flex:none;}
+.attribute-row .attr-value{width:70px;flex:none;text-align:center;}
+.attribute-row button{padding:6px 12px;}
+.attribute-header{margin-bottom:10px;}
