@@ -6,10 +6,50 @@ let discarded=[];
 let current=[];
 let folder="tactic";
 
+const defaultFolders=["行动卡","高级单位","建筑","技能","魔法","神器","普通单位","kdm","tactic"];
+let folders=[];
+
 const pool=document.getElementById("pool");
 const selectedBox=document.getElementById("selected");
 const discardBox=document.getElementById("discard");
 const statusBar=document.getElementById("statusBar");
+const folderSelect=document.getElementById("folderSelect");
+
+
+function initFolders(){
+    folders=JSON.parse(localStorage.getItem("imagePickerFolders")||"null") || [...defaultFolders];
+    let current=localStorage.getItem("imagePickerCurrentFolder");
+    renderFolderSelect();
+    if(current){
+        document.getElementById("folder").value=current;
+        folderSelect.value=current;
+    }
+}
+
+function renderFolderSelect(){
+    if(!folderSelect) return;
+    folderSelect.innerHTML="";
+    folders.forEach(name=>{
+        let op=document.createElement("option");
+        op.value=name;
+        op.textContent=name;
+        folderSelect.appendChild(op);
+    });
+}
+
+function saveFolder(){
+    localStorage.setItem("imagePickerFolders",JSON.stringify(folders));
+    localStorage.setItem("imagePickerCurrentFolder",folder);
+}
+
+function addFolderIfNeed(name){
+    if(name && !folders.includes(name)){
+        folders.push(name);
+        renderFolderSelect();
+        showStatus("新增目录："+name);
+    }
+    saveFolder();
+}
 
 function showStatus(msg){
     if(statusBar) statusBar.innerText="状态："+msg;
@@ -17,6 +57,10 @@ function showStatus(msg){
 
 async function loadImages(){
     folder=document.getElementById("folder").value.trim();
+    if(folderSelect && folderSelect.value && !folder){
+        folder=folderSelect.value;
+    }
+    addFolderIfNeed(folder);
 
     const baseInput=document.getElementById("baseUrl");
     if(baseInput && baseInput.value.trim()){
@@ -186,6 +230,13 @@ function renderDiscard(){
 }
 
 document.getElementById("loadBtn").onclick=loadImages;
+if(folderSelect){
+    folderSelect.onchange=()=>{
+        document.getElementById("folder").value=folderSelect.value;
+    };
+}
+
+initFolders();
 document.getElementById("randomBtn").onclick=randomPick;
 
 function showProgress(show){
