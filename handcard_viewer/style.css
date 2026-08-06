@@ -22,17 +22,30 @@ button{
  border-radius:8px;
  cursor:pointer;
 }
+.layout-control{
+ display:flex;
+ align-items:center;
+ gap:5px;
+ white-space:nowrap;
+}
+.layout-control input{
+ width:60px;
+ padding:8px;
+}
 .cards{
  display:grid;
- grid-template-columns:repeat(auto-fill,minmax(120px,1fr));
- gap:15px;
+ gap:2px;
+ justify-content:center;
+ align-items:start;
 }
 .card{
  position:relative;
+ width:120px;
+ max-width:120px;
  background:white;
  border-radius:10px;
  overflow:hidden;
- aspect-ratio:63/88;
+ aspect-ratio:5/7;
  box-shadow:0 2px 8px #aaa;
  cursor:grab;
 }
@@ -74,7 +87,6 @@ button{
 }
 @media(max-width:600px){
  body{padding:10px}
- .cards{
-  grid-template-columns:repeat(2,1fr);
- }
+ .card{width:80px;max-width:80px;}
+ .cards{gap:2px;}
 }

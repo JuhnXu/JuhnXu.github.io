@@ -2,8 +2,11 @@ const input=document.getElementById("urlInput");
 const cards=document.getElementById("cards");
 const viewer=document.getElementById("viewer");
 const preview=document.getElementById("preview");
+const rowInput=document.getElementById("rowInput");
 
 let list=JSON.parse(localStorage.getItem("cards")||"[]");
+let rows=parseInt(localStorage.getItem("cardRows")||"3");
+rowInput.value=rows;
 
 function save(){
  localStorage.setItem("cards",JSON.stringify(list));
@@ -11,6 +14,7 @@ function save(){
 
 function render(){
  cards.innerHTML="";
+ updateLayout();
  list.forEach((url,i)=>{
   let div=document.createElement("div");
   div.className="card";
@@ -43,14 +47,36 @@ function render(){
  });
 }
 
-document.getElementById("addBtn").onclick=()=>{
+function updateLayout(){
+ let count=Math.max(1,parseInt(rows)||1);
+ let cols=Math.max(1,Math.ceil(list.length/count));
+ cards.style.gridTemplateColumns=`repeat(${cols},auto)`;
+}
+
+function addCard(){
  let url=input.value.trim();
  if(!url)return;
  list.push(url);
  save();
  render();
  input.value="";
-};
+}
+
+document.getElementById("addBtn").onclick=addCard;
+
+// 输入框按回车直接添加卡牌
+input.addEventListener("keydown",e=>{
+ if(e.key==="Enter"){
+  e.preventDefault();
+  addCard();
+ }
+});
+
+rowInput.addEventListener("change",()=>{
+ rows=Math.max(1,parseInt(rowInput.value)||1);
+ localStorage.setItem("cardRows",rows);
+ render();
+});
 
 document.getElementById("clearBtn").onclick=()=>{
  if(confirm("确定清空?")){
