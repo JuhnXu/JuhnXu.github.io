@@ -10,9 +10,11 @@
 <div class="container">
 <h1>图片随机抽取器</h1>
 
+<div id="statusBar" class="status">状态：等待操作</div>
+
 <div class="panel">
 <label>图片服务器：
-<input id="baseUrl" value="https://juhnxu.github.io/mk_db/">
+<input id="baseUrl" value="http://localhost/">
 </label>
 <br><br>
 <label>
@@ -42,6 +44,11 @@
 
 <h2>弃牌区</h2>
 <div id="discard" class="discard"></div>
+</div>
+
+<!-- 图片预览弹窗 -->
+<div id="imagePreview" class="preview" onclick="closePreview()">
+    <img id="previewImg" src="" onclick="event.stopPropagation()">
 </div>
 
 <script src="script.js"></script>

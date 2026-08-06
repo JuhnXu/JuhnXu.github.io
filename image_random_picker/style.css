@@ -45,3 +45,34 @@ border-bottom:1px solid #ddd;
 display:flex;
 justify-content:space-between;
 }
+
+
+/* 图片放大预览 */
+.preview{
+    position:fixed;
+    left:0;
+    top:0;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,0.75);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:9999;
+}
+.preview img{
+    max-width:90%;
+    max-height:90%;
+    object-fit:contain;
+    border-radius:10px;
+    background:white;
+}
+
+.status{
+background:#222;
+color:white;
+padding:10px 15px;
+border-radius:6px;
+margin-bottom:15px;
+min-height:20px;
+}

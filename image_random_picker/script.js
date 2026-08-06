@@ -1,4 +1,4 @@
-let baseUrl="https://juhnxu.github.io/mk_db/";
+let baseUrl="http://localhost/";
 
 let images=[];
 let selected=[];
@@ -9,6 +9,11 @@ let folder="tactic";
 const pool=document.getElementById("pool");
 const selectedBox=document.getElementById("selected");
 const discardBox=document.getElementById("discard");
+const statusBar=document.getElementById("statusBar");
+
+function showStatus(msg){
+    if(statusBar) statusBar.innerText="状态："+msg;
+}
 
 async function loadImages(){
     folder=document.getElementById("folder").value.trim();
@@ -23,7 +28,8 @@ async function loadImages(){
 
     // 根据加载成功的目录名修改标题
     document.querySelector("h1").innerText =
-        folder + "";
+        folder;
+    document.title = folder + " - 图片随机抽取器";
 
     showProgress(true);
 
@@ -54,9 +60,9 @@ async function loadImages(){
         renderSelected();
         renderDiscard();
         randomPick();
-        alert("加载完成，共发现 "+images.length+" 张图片");
+        showStatus("加载完成，共发现 "+images.length+" 张图片");
     }else{
-        alert("没有找到图片");
+        showStatus("没有找到图片");
     }
 
     showProgress(false);
@@ -83,6 +89,7 @@ function randomPick(){
         .slice(0,count);
 
     renderPool();
+    showStatus("随机抽取 "+current.length+" 张图片");
 }
 
 function renderPool(){
@@ -93,18 +100,21 @@ function renderPool(){
         div.className="item";
 
         div.innerHTML=`
-        <img src="${baseUrl+folder+"/"+name}">
+        <img src="${baseUrl+folder+"/"+name}" onclick="previewImage(this.src)">
         <div>${name}</div>
-        <button>保留</button>
+        <button>丢弃</button>
         <button>拷贝链接</button>`;
 
         let buttons=div.querySelectorAll("button");
 
         buttons[0].onclick=()=>{
-            if(!selected.includes(name)){
-                selected.push(name);
-                renderSelected();
-            }
+            if(!discarded.includes(name))
+                discarded.push(name);
+
+            current=current.filter(x=>x!==name);
+            renderPool();
+            renderDiscard();
+            showStatus("已丢弃 "+name);
         };
 
         buttons[1].onclick=()=>{
@@ -123,7 +133,7 @@ function renderSelected(){
         div.className="item";
 
         div.innerHTML=`
-        <img src="${baseUrl+folder+"/"+name}">
+        <img src="${baseUrl+folder+"/"+name}" onclick="previewImage(this.src)">
         <div>${name}</div>
         <button>移除</button>
         <button>丢弃</button>
@@ -143,6 +153,7 @@ function renderSelected(){
 
             renderSelected();
             renderDiscard();
+            showStatus("已丢弃 "+name);
         };
 
         buttons[2].onclick=()=>{
@@ -167,6 +178,7 @@ function renderDiscard(){
         div.querySelector("button").onclick=()=>{
             discarded=discarded.filter(x=>x!==name);
             renderDiscard();
+            showStatus("已恢复 "+name);
         };
 
         discardBox.appendChild(div);
@@ -195,9 +207,27 @@ function copyImageUrl(name){
     const url=baseUrl+folder+"/"+name;
     navigator.clipboard.writeText(url)
         .then(()=>{
-            alert("已复制链接:\n"+url);
+            showStatus("链接已复制");
         })
         .catch(()=>{
-            prompt("复制链接:", url);
+            showStatus("复制失败，请手动复制");
         });
+}
+
+
+// 点击图片放大预览
+function previewImage(src){
+    const box=document.getElementById("imagePreview");
+    const img=document.getElementById("previewImg");
+    if(box && img){
+        img.src=src;
+        box.style.display="flex";
+    }
+}
+
+function closePreview(){
+    const box=document.getElementById("imagePreview");
+    if(box){
+        box.style.display="none";
+    }
 }
