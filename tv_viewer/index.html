@@ -1,18 +1,24 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="utf-8">
-<title>TV Viewer By JuhnXu</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>TV Source Viewer By JuhnXu</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<h1>📺 TV Viewer By JuhnXu</h1>
-<input id="source" style="width:100%" value="https://raw.githubusercontent.com/Yesbaiwan/OuonnkiTV-Source/main/tv_source/OuonnkiTV/lite.json">
+
+<div class="top">
+<h1>📺 TV Source Viewer By JuhnXu</h1>
+<input id="source" value="https://raw.githubusercontent.com/Yesbaiwan/OuonnkiTV-Source/main/tv_source/OuonnkiTV/lite.json">
 <button onclick="loadSource()">加载</button>
 <input id="search" placeholder="搜索频道">
 <div id="status"></div>
+</div>
+
 <div id="category"></div>
 <div id="list"></div>
+
 <script src="app.js"></script>
 </body>
 </html>

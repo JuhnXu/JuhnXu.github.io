@@ -1,109 +1,79 @@
+
 let channels=[];
-let currentCategory="全部";
+let current=0;
 
 async function loadSource(){
- const url=document.getElementById("source").value.trim();
  try{
-  const res=await fetch(url);
-  const json=await res.json();
-  channels=[];
-  deepParse(json);
-
-  document.getElementById("status").innerText=
-    "加载成功，共 "+channels.length+" 个频道";
-
-  renderCategory();
-  renderList();
+ let url=document.getElementById("source").value;
+ let res=await fetch(url);
+ let json=await res.json();
+ channels=[];
+parse(json);
+document.getElementById("status").innerText="加载成功，共"+channels.length+"个频道";
+render();
  }catch(e){
-  document.getElementById("status").innerText="加载失败 "+e;
+ document.getElementById("status").innerText="加载失败";
  }
 }
 
-function deepParse(obj,parent="默认"){
- if(!obj)return;
-
- if(Array.isArray(obj)){
-  obj.forEach(v=>deepParse(v,parent));
+function parse(o,g="默认"){
+ if(!o)return;
+ if(Array.isArray(o)){
+  o.forEach(x=>parse(x,g));
   return;
  }
-
- if(typeof obj==="object"){
-
-  let name=obj.name||obj.title||obj.channel;
-  // 跳转地址优先使用 detailUrl
-  let url=obj.detailUrl||obj.url||obj.src||obj.link||obj.web;
-
-  if(name && url){
-   channels.push({
-    name:name,
-    url:url,
-    group:obj.group||obj.category||parent
-   });
+ if(typeof o==="object"){
+  let name=o.name||o.title||o.channel;
+  let url=o.detailUrl||o.url||o.link||o.src;
+  if(name&&url){
+   channels.push({name,url,group:o.group||g});
    return;
   }
-
-  Object.keys(obj).forEach(k=>{
-   let v=obj[k];
-
-   if(typeof v==="string" && v.startsWith("http")){
-    channels.push({
-     name:k,
-     url:v,
-     group:parent
-    });
+  Object.keys(o).forEach(k=>{
+   if(typeof o[k]==="string" && o[k].startsWith("http")){
+    channels.push({name:k,url:o[k],group:g});
    }else{
-    deepParse(v,k);
+    parse(o[k],k);
    }
   });
  }
 }
 
-function categories(){
- let s=new Set();
- channels.forEach(c=>s.add(c.group||"默认"));
- return ["全部",...s];
-}
-
-function renderCategory(){
- let box=document.getElementById("category");
- box.innerHTML="";
-
- categories().forEach(c=>{
-  let d=document.createElement("div");
-  d.className="cat";
-  d.innerText=c;
-  d.onclick=()=>{
-   currentCategory=c;
-   renderList();
-  };
-  box.appendChild(d);
- });
-}
-
-function renderList(){
+function render(){
  let box=document.getElementById("list");
  box.innerHTML="";
-
- let key=document.getElementById("search").value;
-
- channels.filter(c=>
-  (currentCategory==="全部"||c.group===currentCategory)
-  &&
-  c.name.includes(key)
- ).forEach(c=>{
-
+ channels.forEach((c,i)=>{
   let d=document.createElement("div");
   d.className="item";
-  d.innerHTML=
-   `<b>${c.name}</b><div class="url">${c.url}</div>`;
-
-  d.onclick=()=>{
-   window.open(c.url,"_blank");
-  };
-
+  d.tabIndex=0;
+  d.innerText=c.name;
+  d.onclick=()=>window.open(c.url,"_blank");
   box.appendChild(d);
  });
+ setFocus(0);
 }
 
-document.getElementById("search").oninput=renderList;
+function setFocus(i){
+ let items=document.querySelectorAll(".item");
+ items.forEach(x=>x.classList.remove("focus"));
+ if(items[i]){
+ current=i;
+ items[i].classList.add("focus");
+ items[i].scrollIntoView({block:"center"});
+ }
+}
+
+document.addEventListener("keydown",e=>{
+ let count=document.querySelectorAll(".item").length;
+ if(!count)return;
+
+ if(e.keyCode===39)setFocus((current+1)%count);
+ if(e.keyCode===37)setFocus((current-1+count)%count);
+ if(e.keyCode===40)setFocus(Math.min(current+5,count-1));
+ if(e.keyCode===38)setFocus(Math.max(current-5,0));
+ if(e.keyCode===13){
+  document.querySelectorAll(".item")[current].click();
+ }
+});
+
 loadSource();
