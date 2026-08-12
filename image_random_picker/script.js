@@ -256,13 +256,38 @@ function updateProgress(num){
 
 function copyImageUrl(name){
     const url=baseUrl+folder+"/"+name;
-    navigator.clipboard.writeText(url)
+
+    // 手机浏览器通常要求 HTTPS + 用户手势才能使用 clipboard API
+    if(navigator.clipboard && window.isSecureContext){
+        navigator.clipboard.writeText(url)
         .then(()=>{
             showStatus("链接已复制");
         })
         .catch(()=>{
-            showStatus("复制失败，请手动复制");
+            fallbackCopy(url);
         });
+    }else{
+        fallbackCopy(url);
+    }
+}
+
+function fallbackCopy(text){
+    let input=document.createElement("textarea");
+    input.value=text;
+    input.style.position="fixed";
+    input.style.left="-9999px";
+    document.body.appendChild(input);
+    input.focus();
+    input.select();
+
+    try{
+        let ok=document.execCommand("copy");
+        showStatus(ok ? "链接已复制" : "复制失败，请长按复制");
+    }catch(e){
+        showStatus("复制失败，请长按复制");
+    }
+
+    document.body.removeChild(input);
 }
 
 
