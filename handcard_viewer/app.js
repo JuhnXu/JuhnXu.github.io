@@ -64,6 +64,26 @@ function addCard(){
 
 document.getElementById("addBtn").onclick=addCard;
 
+// 从系统剪贴板粘贴链接到输入框
+document.getElementById("pasteBtn").onclick=async()=>{
+ try{
+  if(!navigator.clipboard || !navigator.clipboard.readText){
+   throw new Error("当前浏览器不支持剪贴板读取");
+  }
+  const text=(await navigator.clipboard.readText()).trim();
+  if(!text){
+   alert("剪贴板内容为空");
+   return;
+  }
+  input.value=text;
+  input.focus();
+  input.setSelectionRange(input.value.length,input.value.length);
+ }catch(err){
+  console.error("读取剪贴板失败:",err);
+  alert("无法读取剪贴板，请允许浏览器访问剪贴板后重试。");
+ }
+};
+
 // 输入框按回车直接添加卡牌
 input.addEventListener("keydown",e=>{
  if(e.key==="Enter"){

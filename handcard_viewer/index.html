@@ -8,7 +8,14 @@
 </head>
 <body>
 <div class="toolbar">
-<input id="urlInput" placeholder="输入图片链接">
+<div class="url-input-wrap">
+ <input id="urlInput" placeholder="请输入图片链接">
+ <button id="pasteBtn" class="paste-btn" type="button" title="从剪贴板粘贴" aria-label="从剪贴板粘贴">
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+   <path d="M9 4h6a2 2 0 0 1 2 2v1h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h2V6a2 2 0 0 1 2-2Zm0 3h6V6H9v1Zm-4 2v10h14V9H5Z"/>
+  </svg>
+ </button>
+</div>
 <button id="addBtn">添加卡牌</button>
 <button id="clearBtn">清空</button>
 <label class="layout-control">行数：<input id="rowInput" type="number" min="1" value="3"></label>

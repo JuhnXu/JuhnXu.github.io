@@ -10,11 +10,49 @@ body{
  gap:10px;
  margin-bottom:20px;
 }
+.url-input-wrap{
+ position:relative;
+ flex:1;
+ min-width:0;
+}
+.url-input-wrap input{
+ width:100%;
+ padding:10px 48px 10px 12px;
+ border-radius:8px;
+ border:1px solid #ccc;
+ background:#fff;
+}
 input{
  flex:1;
  padding:10px;
  border-radius:8px;
  border:1px solid #ccc;
+}
+.paste-btn{
+ position:absolute;
+ top:50%;
+ right:5px;
+ transform:translateY(-50%);
+ width:36px;
+ height:36px;
+ padding:7px;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ background:transparent;
+ border-radius:6px;
+ color:#333;
+}
+.paste-btn:hover{
+ background:#f0f0f0;
+}
+.paste-btn:active{
+ background:#e5e5e5;
+}
+.paste-btn svg{
+ width:22px;
+ height:22px;
+ fill:currentColor;
 }
 button{
  padding:10px 16px;
@@ -87,6 +125,11 @@ button{
 }
 @media(max-width:600px){
  body{padding:10px}
+ .toolbar{gap:6px;}
+ .url-input-wrap{min-width:0;}
+ .url-input-wrap input{padding-left:10px;padding-right:44px;}
+ .paste-btn{right:3px;width:34px;height:34px;}
+ .toolbar>#addBtn{padding:10px 12px;white-space:nowrap;}
  .card{width:80px;max-width:80px;}
  .cards{gap:2px;}
 }
