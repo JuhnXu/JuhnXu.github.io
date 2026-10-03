@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>拼豆图纸生成器</title>
-  <meta name="description" content="将图片转换为拼豆图纸，支持尺寸、颜色数量、网格、颜色统计和 PNG/CSV 导出。">
+  <meta name="description" content="根据图片原始分辨率和目标拼豆尺寸生成拼豆图纸，支持总数量、实体尺寸、颜色统计和 PNG/CSV 导出。">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -31,9 +31,23 @@
 
       <section>
         <h2>② 图纸设置</h2>
+        <div class="source-info" id="sourceInfo">上传图片后自动读取原始分辨率</div>
+        <label>尺寸模式
+          <select id="sizeMode">
+            <option value="width">按拼豆宽度</option>
+            <option value="total">按拼豆总数量</option>
+            <option value="bead">按实物拼豆尺寸</option>
+          </select>
+        </label>
         <div class="field-row">
-          <label>宽度 <input id="widthInput" type="number" min="5" max="200" value="40"></label>
-          <label>高度 <input id="heightInput" type="number" min="5" max="200" value="40"></label>
+          <label>拼豆宽度 <input id="widthInput" type="number" min="5" max="300" value="40"></label>
+          <label>拼豆高度 <input id="heightInput" type="number" min="5" max="300" value="40"></label>
+        </div>
+        <div id="totalSizeField" class="single-field" hidden>
+          <label>目标拼豆总数 <input id="totalInput" type="number" min="25" max="90000" value="1600"></label>
+        </div>
+        <div id="beadSizeField" class="single-field" hidden>
+          <label>单颗拼豆尺寸（mm） <input id="beadSizeInput" type="number" min="2" max="20" step="0.1" value="2.6"></label>
         </div>
         <label class="check"><input id="keepRatio" type="checkbox" checked> 保持原图比例</label>
         <label>颜色数量 <output id="colorCountValue">24</output>
@@ -88,10 +102,11 @@
         <div class="stat"><span>总拼豆</span><strong id="totalBeads">—</strong></div>
         <div class="stat"><span>使用颜色</span><strong id="usedColors">—</strong></div>
         <div class="stat"><span>图纸尺寸</span><strong id="patternSize">—</strong></div>
+        <div class="stat"><span>实物尺寸</span><strong id="physicalSize">—</strong></div>
       </div>
 
       <div class="legend">
-        <div class="legend-head"><h2>颜色清单</h2><span>按用量排序</span></div>
+        <div class="legend-head"><h2>颜色清单</h2><span id="resolutionHint">按原图比例采样</span></div>
         <div id="colorTable" class="color-table">
           <div class="table-empty">生成图纸后显示颜色编号、名称、HEX 和数量。</div>
         </div>

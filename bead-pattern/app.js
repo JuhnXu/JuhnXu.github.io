@@ -1,5 +1,5 @@
 const $=s=>document.querySelector(s);
-const els={file:$("#fileInput"),drop:$("#dropzone"),name:$("#fileName"),w:$("#widthInput"),h:$("#heightInput"),ratio:$("#keepRatio"),colors:$("#colorCount"),colorVal:$("#colorCountValue"),palette:$("#palette"),grid:$("#showGrid"),numbers:$("#showNumbers"),generate:$("#generateBtn"),png:$("#exportPng"),csv:$("#exportCsv"),canvas:$("#patternCanvas"),wrap:$("#canvasWrap"),meta:$("#meta"),total:$("#totalBeads"),used:$("#usedColors"),size:$("#patternSize"),table:$("#colorTable"),zin:$("#zoomIn"),zout:$("#zoomOut"),zv:$("#zoomValue")};
+const els={file:$("#fileInput"),drop:$("#dropzone"),name:$("#fileName"),w:$("#widthInput"),h:$("#heightInput"),ratio:$("#keepRatio"),colors:$("#colorCount"),colorVal:$("#colorCountValue"),palette:$("#palette"),grid:$("#showGrid"),numbers:$("#showNumbers"),generate:$("#generateBtn"),png:$("#exportPng"),csv:$("#exportCsv"),canvas:$("#patternCanvas"),wrap:$("#canvasWrap"),meta:$("#meta"),total:$("#totalBeads"),used:$("#usedColors"),size:$("#patternSize"),physical:$("#physicalSize"),resolutionHint:$("#resolutionHint"),table:$("#colorTable"),zin:$("#zoomIn"),zout:$("#zoomOut"),zv:$("#zoomValue"),sourceInfo:$("#sourceInfo"),sizeMode:$("#sizeMode"),totalInput:$("#totalInput"),beadSizeInput:$("#beadSizeInput"),totalField:$("#totalSizeField"),beadField:$("#beadSizeField")};
 const PALETTES={
 classic:[
 ["01","黑色","#171717"],["02","深灰","#55585d"],["03","灰色","#8b8f93"],["04","白色","#f7f7f4"],["05","象牙白","#f1e5c8"],["06","浅黄","#ffe27a"],["07","黄色","#ffc400"],["08","橙色","#ff8b22"],["09","红色","#e9363f"],["10","深红","#a81f31"],["11","粉色","#ff8fbc"],["12","紫色","#8e55b7"],["13","深紫","#59368a"],["14","蓝色","#4b8ff7"],["15","深蓝","#254f9c"],["16","天蓝","#75c9ee"],["17","青色","#2cbdb0"],["18","绿色","#48b957"],["19","深绿","#287842"],["20","棕色","#875632"],["21","浅棕","#c58b5b"],["22","米色","#e5c69b"],["23","肤色","#f0b18b"],["24","浅粉","#ffd0d7"],["25","薄荷绿","#9be4bb"],["26","草绿","#8fca47"],["27","金黄","#e8a91a"],["28","珊瑚","#f06e5f"],["29","靛蓝","#3d4eaa"],["30","湖蓝","#39a9d8"],["31","酒红","#70293b"],["32","墨绿","#1f5c52"],["33","深棕","#4d3325"],["34","浅紫","#c39bdc"],["35","浅蓝","#a8d7ff"],["36","浅绿","#c8e98b"],["37","银灰","#c2c4c7"],["38","暖灰","#6f6a63"],["39","砖红","#bd4c3b"],["40","卡其","#b7a77c"],["41","荧光黄","#d9ff42"],["42","荧光绿","#5eff71"],["43","荧光橙","#ffad35"],["44","荧光粉","#ff5fa2"],["45","金属蓝","#597aa8"],["46","海军蓝","#1b315f"],["47","咖啡","#6b4330"],["48","焦糖","#c77a3a"]],
@@ -33,15 +33,41 @@ function loadFile(file){
   reader.onload=e=>{const im=new Image();im.onload=()=>{img=im;els.generate.disabled=false;autoSize();renderSourceHint()};im.src=e.target.result};
   reader.readAsDataURL(file);
 }
+function sourceAspect(){return img.naturalWidth/img.naturalHeight}
 function autoSize(){
   if(!img)return;
-  const w=+els.w.value||40;
-  if(els.ratio.checked)els.h.value=Math.max(5,Math.round(w*img.naturalHeight/img.naturalWidth));
+  const mode=els.sizeMode.value, ratio=sourceAspect();
+  if(mode==="width"){
+    const w=Math.max(5,Math.min(300,+els.w.value||40));
+    els.w.value=w;
+    els.h.value=els.ratio.checked?Math.max(5,Math.min(300,Math.round(w/ratio))):Math.max(5,Math.min(300,+els.h.value||40));
+  }else if(mode==="total"){
+    const total=Math.max(25,Math.min(90000,+els.totalInput.value||1600));
+    let w=Math.max(5,Math.round(Math.sqrt(total*ratio))),h=Math.max(5,Math.round(w/ratio));
+    while(w*h>90000){w--;h=Math.max(5,Math.round(w/ratio))}
+    els.w.value=w;els.h.value=h;
+  }else{
+    const mm=Math.max(2,Math.min(20,+els.beadSizeInput.value||2.6));
+    // 1 image pixel is represented by one bead; the physical size is independent of source pixels.
+    const base=Math.max(5,Math.min(300,Math.round(Math.sqrt(90000*ratio))));
+    const target=Math.max(5,Math.min(300,Math.round(base*(2.6/mm))));
+    els.w.value=target;
+    els.h.value=Math.max(5,Math.min(300,Math.round(target/ratio)));
+  }
+  updateSourceInfo();
 }
-function renderSourceHint(){els.meta.textContent=`原图 ${img.naturalWidth} × ${img.naturalHeight} · ${sourceName}`}
+function updateSourceInfo(){
+  if(!img)return;
+  const px=img.naturalWidth*img.naturalHeight;
+  const mode=els.sizeMode.value;
+  const label=mode==="width"?"按宽度":mode==="total"?"按总数量":"按实体尺寸";
+  els.sourceInfo.textContent=`原图 ${img.naturalWidth} × ${img.naturalHeight}px · ${px.toLocaleString()} 像素 · 当前${label}`;
+}
+function renderSourceHint(){els.meta.textContent=`原图 ${img.naturalWidth} × ${img.naturalHeight} · ${sourceName}`;updateSourceInfo()}
 function generate(){
   if(!img)return;
-  let W=Math.max(5,Math.min(200,+els.w.value||40)),H=Math.max(5,Math.min(200,+els.h.value||40));
+  autoSize();
+  let W=Math.max(5,Math.min(300,+els.w.value||40)),H=Math.max(5,Math.min(300,+els.h.value||40));
   els.w.value=W;els.h.value=H;
   const pal=pickPalette(+els.colors.value), work=document.createElement("canvas");work.width=W;work.height=H;
   const ctx=work.getContext("2d",{willReadFrequently:true});ctx.drawImage(img,0,0,W,H);
@@ -66,7 +92,14 @@ function draw(pal,W,H){
   scale=1;applyZoom();
 }
 function applyZoom(){els.canvas.style.width=(els.canvas.width*scale)+"px";els.canvas.style.height=(els.canvas.height*scale)+"px";els.zv.textContent=Math.round(scale*100)+"%"}
-function updateStats(pal,W,H){els.total.textContent=W*H;els.used.textContent=counts.filter(Boolean).length;els.size.textContent=`${W} × ${H}`}
+function updateStats(pal,W,H){
+  const total=W*H,mm=Math.max(2,Math.min(20,+els.beadSizeInput.value||2.6));
+  els.total.textContent=total.toLocaleString();
+  els.used.textContent=counts.filter(Boolean).length;
+  els.size.textContent=`${W} × ${H}`;
+  els.physical.textContent=`${(W*mm/10).toFixed(1)} × ${(H*mm/10).toFixed(1)} cm`;
+  if(els.resolutionHint)els.resolutionHint.textContent=`原图 ${img.naturalWidth}×${img.naturalHeight}px → ${W}×${H} 格`;
+}
 function renderTable(pal){
   const rows=pal.map((p,i)=>({...p,n:counts[i]})).filter(x=>x.n).sort((a,b)=>b.n-a.n);
   els.table.innerHTML=`<div class="color-row" style="font-weight:700;color:#727b88"><span></span><span>颜色</span><span>HEX</span><span>编号</span><span class="num">数量</span></div>`+
@@ -85,8 +118,21 @@ els.file.onchange=e=>loadFile(e.target.files[0]);
 ["dragenter","dragover"].forEach(t=>els.drop.addEventListener(t,e=>{e.preventDefault();els.drop.classList.add("drag")}));
 ["dragleave","drop"].forEach(t=>els.drop.addEventListener(t,e=>{e.preventDefault();els.drop.classList.remove("drag")}));
 els.drop.addEventListener("drop",e=>loadFile(e.dataTransfer.files[0]));
-els.w.oninput=()=>{if(els.ratio.checked)autoSize()};
-els.ratio.onchange=autoSize;els.colors.oninput=()=>els.colorVal.textContent=els.colors.value;
+function updateSizeModeUI(){
+  const mode=els.sizeMode.value;
+  els.totalField.hidden=mode!=="total";
+  els.beadField.hidden=mode!=="bead";
+  els.w.disabled=mode!=="width";
+  els.h.disabled=mode!=="width";
+  if(img)autoSize();
+}
+els.w.oninput=()=>{if(els.ratio.checked)autoSize();else updateSourceInfo()};
+els.h.oninput=()=>{if(!els.ratio.checked)updateSourceInfo()};
+els.ratio.onchange=autoSize;
+els.sizeMode.onchange=updateSizeModeUI;
+els.totalInput.oninput=()=>{if(els.sizeMode.value==="total")autoSize()};
+els.beadSizeInput.oninput=()=>{if(els.sizeMode.value==="bead")autoSize()};
+updateSizeModeUI();els.colors.oninput=()=>els.colorVal.textContent=els.colors.value;
 els.generate.onclick=generate;els.png.onclick=pngExport;els.csv.onclick=csvExport;
 [els.grid,els.numbers].forEach(x=>x.onchange=()=>{if(cells.length)generate()});
 els.palette.onchange=()=>{if(cells.length)generate()};
