@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>拼豆图纸生成器</title>
+  <meta name="description" content="将图片转换为拼豆图纸，支持尺寸、颜色数量、网格、颜色统计和 PNG/CSV 导出。">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <div class="brand">拼豆图纸生成器</div>
+      <div class="subtitle">图片 → 拼豆图纸 · 全程本地处理</div>
+    </div>
+    <div class="badge">无需上传图片</div>
+  </header>
+
+  <main class="layout">
+    <aside class="panel controls">
+      <section>
+        <h2>① 上传图片</h2>
+        <label class="dropzone" id="dropzone">
+          <input id="fileInput" type="file" accept="image/*">
+          <span class="upload-icon">＋</span>
+          <strong>点击选择图片</strong>
+          <small>也可以直接拖拽图片到这里</small>
+        </label>
+        <div class="file-name" id="fileName">尚未选择图片</div>
+      </section>
+
+      <section>
+        <h2>② 图纸设置</h2>
+        <div class="field-row">
+          <label>宽度 <input id="widthInput" type="number" min="5" max="200" value="40"></label>
+          <label>高度 <input id="heightInput" type="number" min="5" max="200" value="40"></label>
+        </div>
+        <label class="check"><input id="keepRatio" type="checkbox" checked> 保持原图比例</label>
+        <label>颜色数量 <output id="colorCountValue">24</output>
+          <input id="colorCount" type="range" min="4" max="48" value="24">
+        </label>
+        <label>颜色库
+          <select id="palette">
+            <option value="classic">常用拼豆色板（内置）</option>
+            <option value="basic">基础色板（12色）</option>
+          </select>
+        </label>
+        <label class="check"><input id="showGrid" type="checkbox" checked> 显示网格线</label>
+        <label class="check"><input id="showNumbers" type="checkbox"> 显示颜色编号</label>
+        <button class="primary" id="generateBtn" disabled>生成拼豆图纸</button>
+      </section>
+
+      <section>
+        <h2>③ 导出</h2>
+        <div class="button-grid">
+          <button id="exportPng" disabled>导出 PNG</button>
+          <button id="exportCsv" disabled>导出 CSV</button>
+        </div>
+      </section>
+
+      <section class="tips">
+        <h2>使用提示</h2>
+        <p>建议先将主体清晰、背景简单的图片转换成图纸。颜色越少，实际拼豆配色越容易采购；格数越大，细节越丰富。</p>
+      </section>
+    </aside>
+
+    <section class="workspace">
+      <div class="workspace-head">
+        <div>
+          <h1>图纸预览</h1>
+          <span id="meta">等待上传图片</span>
+        </div>
+        <div class="zoom">
+          <button id="zoomOut">−</button><span id="zoomValue">100%</span><button id="zoomIn">＋</button>
+        </div>
+      </div>
+
+      <div class="canvas-wrap" id="canvasWrap">
+        <div class="empty">
+          <div class="empty-art">▦</div>
+          <h3>上传一张图片开始制作</h3>
+          <p>生成后这里会显示可直接照着摆放的拼豆图纸。</p>
+        </div>
+        <canvas id="patternCanvas" hidden></canvas>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><span>总拼豆</span><strong id="totalBeads">—</strong></div>
+        <div class="stat"><span>使用颜色</span><strong id="usedColors">—</strong></div>
+        <div class="stat"><span>图纸尺寸</span><strong id="patternSize">—</strong></div>
+      </div>
+
+      <div class="legend">
+        <div class="legend-head"><h2>颜色清单</h2><span>按用量排序</span></div>
+        <div id="colorTable" class="color-table">
+          <div class="table-empty">生成图纸后显示颜色编号、名称、HEX 和数量。</div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
