@@ -30,7 +30,18 @@
       </section>
 
       <section>
-        <h2>② 图纸设置</h2>
+        <h2>② 处理模式</h2>
+        <label>图纸类型
+          <select id="renderMode">
+            <option value="bead">拼豆图纸（颜色量化）</option>
+            <option value="grid">原图 + 网格（不改变原图）</option>
+          </select>
+        </label>
+        <div class="mode-note" id="modeNote">会按拼豆格数重新采样并匹配拼豆颜色。</div>
+      </section>
+
+      <section>
+        <h2>③ 图纸设置</h2>
         <div class="source-info" id="sourceInfo">上传图片后自动读取原始分辨率</div>
         <label>尺寸模式
           <select id="sizeMode">
@@ -61,11 +72,22 @@
         </label>
         <label class="check"><input id="showGrid" type="checkbox" checked> 显示网格线</label>
         <label class="check"><input id="showNumbers" type="checkbox"> 显示颜色编号</label>
+        <div id="gridOnlySettings" class="grid-settings" hidden>
+          <label>网格列数 <output id="gridColsValue">40</output>
+            <input id="gridCols" type="range" min="5" max="200" value="40">
+          </label>
+          <label>网格线强度 <output id="gridOpacityValue">45%</output>
+            <input id="gridOpacity" type="range" min="10" max="100" value="45">
+          </label>
+          <label>网格线宽度 <output id="gridWidthValue">1 px</output>
+            <input id="gridWidth" type="range" min="1" max="5" value="1">
+          </label>
+        </div>
         <button class="primary" id="generateBtn" disabled>生成拼豆图纸</button>
       </section>
 
       <section>
-        <h2>③ 导出</h2>
+        <h2>④ 导出</h2>
         <div class="button-grid">
           <button id="exportPng" disabled>导出 PNG</button>
           <button id="exportCsv" disabled>导出 CSV</button>
@@ -106,7 +128,7 @@
       </div>
 
       <div class="legend">
-        <div class="legend-head"><h2>颜色清单</h2><span id="resolutionHint">按原图比例采样</span></div>
+        <div class="legend-head"><h2 id="legendTitle">颜色清单</h2><span id="resolutionHint">按原图比例采样</span></div>
         <div id="colorTable" class="color-table">
           <div class="table-empty">生成图纸后显示颜色编号、名称、HEX 和数量。</div>
         </div>

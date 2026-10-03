@@ -1,5 +1,5 @@
 const $=s=>document.querySelector(s);
-const els={file:$("#fileInput"),drop:$("#dropzone"),name:$("#fileName"),w:$("#widthInput"),h:$("#heightInput"),ratio:$("#keepRatio"),colors:$("#colorCount"),colorVal:$("#colorCountValue"),palette:$("#palette"),grid:$("#showGrid"),numbers:$("#showNumbers"),generate:$("#generateBtn"),png:$("#exportPng"),csv:$("#exportCsv"),canvas:$("#patternCanvas"),wrap:$("#canvasWrap"),meta:$("#meta"),total:$("#totalBeads"),used:$("#usedColors"),size:$("#patternSize"),physical:$("#physicalSize"),resolutionHint:$("#resolutionHint"),table:$("#colorTable"),zin:$("#zoomIn"),zout:$("#zoomOut"),zv:$("#zoomValue"),sourceInfo:$("#sourceInfo"),sizeMode:$("#sizeMode"),totalInput:$("#totalInput"),beadSizeInput:$("#beadSizeInput"),totalField:$("#totalSizeField"),beadField:$("#beadSizeField")};
+const els={file:$("#fileInput"),drop:$("#dropzone"),name:$("#fileName"),w:$("#widthInput"),h:$("#heightInput"),ratio:$("#keepRatio"),colors:$("#colorCount"),colorVal:$("#colorCountValue"),palette:$("#palette"),grid:$("#showGrid"),numbers:$("#showNumbers"),generate:$("#generateBtn"),png:$("#exportPng"),csv:$("#exportCsv"),canvas:$("#patternCanvas"),wrap:$("#canvasWrap"),meta:$("#meta"),total:$("#totalBeads"),used:$("#usedColors"),size:$("#patternSize"),physical:$("#physicalSize"),resolutionHint:$("#resolutionHint"),table:$("#colorTable"),zin:$("#zoomIn"),renderMode:$("#renderMode"),modeNote:$("#modeNote"),gridOnlySettings:$("#gridOnlySettings"),gridCols:$("#gridCols"),gridColsValue:$("#gridColsValue"),gridOpacity:$("#gridOpacity"),gridOpacityValue:$("#gridOpacityValue"),gridWidth:$("#gridWidth"),gridWidthValue:$("#gridWidthValue"),legendTitle:$("#legendTitle"),renderMode:$("#renderMode"),modeNote:$("#modeNote"),gridOnlySettings:$("#gridOnlySettings"),gridCols:$("#gridCols"),gridColsValue:$("#gridColsValue"),gridOpacity:$("#gridOpacity"),gridOpacityValue:$("#gridOpacityValue"),gridWidth:$("#gridWidth"),gridWidthValue:$("#gridWidthValue"),legendTitle:$("#legendTitle"),zout:$("#zoomOut"),zv:$("#zoomValue"),sourceInfo:$("#sourceInfo"),sizeMode:$("#sizeMode"),totalInput:$("#totalInput"),beadSizeInput:$("#beadSizeInput"),totalField:$("#totalSizeField"),beadField:$("#beadSizeField")};
 const PALETTES={
 classic:[
 ["01","黑色","#171717"],["02","深灰","#55585d"],["03","灰色","#8b8f93"],["04","白色","#f7f7f4"],["05","象牙白","#f1e5c8"],["06","浅黄","#ffe27a"],["07","黄色","#ffc400"],["08","橙色","#ff8b22"],["09","红色","#e9363f"],["10","深红","#a81f31"],["11","粉色","#ff8fbc"],["12","紫色","#8e55b7"],["13","深紫","#59368a"],["14","蓝色","#4b8ff7"],["15","深蓝","#254f9c"],["16","天蓝","#75c9ee"],["17","青色","#2cbdb0"],["18","绿色","#48b957"],["19","深绿","#287842"],["20","棕色","#875632"],["21","浅棕","#c58b5b"],["22","米色","#e5c69b"],["23","肤色","#f0b18b"],["24","浅粉","#ffd0d7"],["25","薄荷绿","#9be4bb"],["26","草绿","#8fca47"],["27","金黄","#e8a91a"],["28","珊瑚","#f06e5f"],["29","靛蓝","#3d4eaa"],["30","湖蓝","#39a9d8"],["31","酒红","#70293b"],["32","墨绿","#1f5c52"],["33","深棕","#4d3325"],["34","浅紫","#c39bdc"],["35","浅蓝","#a8d7ff"],["36","浅绿","#c8e98b"],["37","银灰","#c2c4c7"],["38","暖灰","#6f6a63"],["39","砖红","#bd4c3b"],["40","卡其","#b7a77c"],["41","荧光黄","#d9ff42"],["42","荧光绿","#5eff71"],["43","荧光橙","#ffad35"],["44","荧光粉","#ff5fa2"],["45","金属蓝","#597aa8"],["46","海军蓝","#1b315f"],["47","咖啡","#6b4330"],["48","焦糖","#c77a3a"]],
@@ -66,21 +66,61 @@ function updateSourceInfo(){
 function renderSourceHint(){els.meta.textContent=`原图 ${img.naturalWidth} × ${img.naturalHeight} · ${sourceName}`;updateSourceInfo()}
 function generate(){
   if(!img)return;
+  if(els.renderMode.value==="grid"){generateOriginalGrid();return}
   autoSize();
   let W=Math.max(5,Math.min(300,+els.w.value||40)),H=Math.max(5,Math.min(300,+els.h.value||40));
   els.w.value=W;els.h.value=H;
-  const pal=pickPalette(+els.colors.value), work=document.createElement("canvas");work.width=W;work.height=H;
-  const ctx=work.getContext("2d",{willReadFrequently:true});ctx.drawImage(img,0,0,W,H);
+  const pal=pickPalette(+els.colors.value), work=document.createElement("canvas");
+  work.width=W;work.height=H;
+  const ctx=work.getContext("2d",{willReadFrequently:true});
+  ctx.drawImage(img,0,0,W,H);
   const data=ctx.getImageData(0,0,W,H).data;
   cells=new Array(W*H);counts=pal.map(()=>0);
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
-    const i=(y*W+x)*4,a=data[i+3]/255;
-    const bg=[255,255,255], c=[data[i]*a+bg[0]*(1-a),data[i+1]*a+bg[1]*(1-a),data[i+2]*a+bg[2]*(1-a)];
+    const i=(y*W+x)*4,a=data[i+3]/255,bg=[255,255,255];
+    const c=[data[i]*a+bg[0]*(1-a),data[i+1]*a+bg[1]*(1-a),data[i+2]*a+bg[2]*(1-a)];
     let bi=0,bd=Infinity;
     pal.forEach((p,j)=>{const d=dist(c,p.rgb);if(d<bd){bd=d;bi=j}});
     cells[y*W+x]=bi;counts[bi]++;
   }
-  draw(pal,W,H);updateStats(pal,W,H);renderTable(pal);els.png.disabled=false;els.csv.disabled=false;
+  draw(pal,W,H);updateStats(pal,W,H);renderTable(pal);
+  els.png.disabled=false;els.csv.disabled=false;
+  els.legendTitle.textContent="颜色清单";
+}
+function generateOriginalGrid(){
+  if(!img)return;
+  const cols=Math.max(5,Math.min(200,+els.gridCols.value||40));
+  const rows=Math.max(5,Math.min(200,Math.round(cols/sourceAspect())));
+  els.w.value=cols;els.h.value=rows;
+  const max=760,cell=Math.max(4,Math.floor(max/Math.max(cols,rows)));
+  const cw=cols*cell,ch=rows*cell;
+  els.canvas.width=cw;els.canvas.height=ch;els.canvas.hidden=false;
+  document.querySelector(".empty")?.remove();
+  const c=els.canvas.getContext("2d");
+  c.clearRect(0,0,cw,ch);
+  c.drawImage(img,0,0,cw,ch);
+  if(els.grid.checked){
+    const opacity=Math.max(0.1,Math.min(1,+els.gridOpacity.value/100));
+    const lineWidth=Math.max(1,+els.gridWidth.value);
+    c.strokeStyle=`rgba(0,0,0,${opacity})`;
+    c.lineWidth=lineWidth;
+    c.beginPath();
+    for(let x=0;x<=cols;x++){c.moveTo(x*cell,0);c.lineTo(x*cell,ch)}
+    for(let y=0;y<=rows;y++){c.moveTo(0,y*cell);c.lineTo(cw,y*cell)}
+    c.stroke();
+  }
+  cells=[];counts=[];
+  els.total.textContent=(cols*rows).toLocaleString();
+  els.used.textContent="—";
+  els.size.textContent=`${cols} × ${rows}`;
+  const mm=Math.max(2,Math.min(20,+els.beadSizeInput.value||2.6));
+  els.physical.textContent=`${(cols*mm/10).toFixed(1)} × ${(rows*mm/10).toFixed(1)} cm`;
+  els.meta.textContent=`原图 ${img.naturalWidth} × ${img.naturalHeight} · 网格 ${cols} × ${rows}`;
+  els.resolutionHint.textContent=`原图 ${img.naturalWidth}×${img.naturalHeight}px · 仅叠加网格`;
+  els.legendTitle.textContent="原图模式";
+  els.table.innerHTML='<div class="table-empty">此模式不会改变原图颜色，也不会进行颜色量化；导出的 PNG 仅是在原图上叠加网格。</div>';
+  els.png.disabled=false;els.csv.disabled=true;
+  scale=1;applyZoom();
 }
 function draw(pal,W,H){
   const max=760,cell=Math.max(4,Math.floor(max/Math.max(W,H))),cw=W*cell,ch=H*cell;
@@ -132,7 +172,70 @@ els.ratio.onchange=autoSize;
 els.sizeMode.onchange=updateSizeModeUI;
 els.totalInput.oninput=()=>{if(els.sizeMode.value==="total")autoSize()};
 els.beadSizeInput.oninput=()=>{if(els.sizeMode.value==="bead")autoSize()};
-updateSizeModeUI();els.colors.oninput=()=>els.colorVal.textContent=els.colors.value;
+updateSizeModeUI();function updateRenderModeUI(){
+  const gridMode=els.renderMode.value==="grid";
+  els.gridOnlySettings.hidden=!gridMode;
+  els.colors.disabled=gridMode;
+  els.palette.disabled=gridMode;
+  els.numbers.disabled=gridMode;
+  els.modeNote.textContent=gridMode
+    ?"原图颜色完全保留，只在图片上叠加可调网格；导出 PNG 也不会进行拼豆颜色量化。"
+    :"会按拼豆格数重新采样图片，并匹配到选定的拼豆色板。";
+  if(gridMode){
+    const cols=Math.max(5,Math.min(200,+els.gridCols.value||40));
+    els.w.value=cols;
+    els.h.value=Math.max(5,Math.min(200,Math.round(cols/sourceAspect())));
+    els.gridColsValue.textContent=cols;
+    els.legendTitle.textContent="原图模式";
+  }else{
+    els.legendTitle.textContent="颜色清单";
+    autoSize();
+  }
+}
+function refreshGridLabels(){
+  els.gridColsValue.textContent=els.gridCols.value;
+  els.gridOpacityValue.textContent=els.gridOpacity.value+"%";
+  els.gridWidthValue.textContent=els.gridWidth.value+" px";
+}
+els.renderMode.addEventListener("change",()=>{updateRenderModeUI();if(img)generate()});
+els.gridCols.addEventListener("input",()=>{refreshGridLabels();if(img&&els.renderMode.value==="grid")generateOriginalGrid()});
+els.gridOpacity.addEventListener("input",()=>{refreshGridLabels();if(img&&els.renderMode.value==="grid")generateOriginalGrid()});
+els.gridWidth.addEventListener("input",()=>{refreshGridLabels();if(img&&els.renderMode.value==="grid")generateOriginalGrid()});
+refreshGridLabels();
+updateRenderModeUI();
+
+function updateRenderModeUI(){
+  const gridMode=els.renderMode.value==="grid";
+  els.gridOnlySettings.hidden=!gridMode;
+  els.colors.disabled=gridMode;
+  els.palette.disabled=gridMode;
+  els.numbers.disabled=gridMode;
+  els.modeNote.textContent=gridMode
+    ?"原图颜色完全保留，只在图片上叠加可调网格；导出 PNG 也不会进行拼豆颜色量化。"
+    :"会按拼豆格数重新采样图片，并匹配到选定的拼豆色板。";
+  if(gridMode){
+    const cols=Math.max(5,Math.min(200,+els.gridCols.value||40));
+    els.w.value=cols;
+    els.h.value=Math.max(5,Math.min(200,Math.round(cols/sourceAspect())));
+    els.gridColsValue.textContent=cols;
+    els.legendTitle.textContent="原图模式";
+  }else{
+    els.legendTitle.textContent="颜色清单";
+    autoSize();
+  }
+}
+function refreshGridLabels(){
+  els.gridColsValue.textContent=els.gridCols.value;
+  els.gridOpacityValue.textContent=els.gridOpacity.value+"%";
+  els.gridWidthValue.textContent=els.gridWidth.value+" px";
+}
+els.renderMode.addEventListener("change",()=>{updateRenderModeUI();if(img)generate()});
+els.gridCols.addEventListener("input",()=>{refreshGridLabels();if(img&&els.renderMode.value==="grid")generateOriginalGrid()});
+els.gridOpacity.addEventListener("input",()=>{refreshGridLabels();if(img&&els.renderMode.value==="grid")generateOriginalGrid()});
+els.gridWidth.addEventListener("input",()=>{refreshGridLabels();if(img&&els.renderMode.value==="grid")generateOriginalGrid()});
+refreshGridLabels();
+updateRenderModeUI();
+els.colors.oninput=()=>els.colorVal.textContent=els.colors.value;
 els.generate.onclick=generate;els.png.onclick=pngExport;els.csv.onclick=csvExport;
 [els.grid,els.numbers].forEach(x=>x.onchange=()=>{if(cells.length)generate()});
 els.palette.onchange=()=>{if(cells.length)generate()};
